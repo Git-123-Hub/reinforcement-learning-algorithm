@@ -31,19 +31,14 @@ class Agent:
 
         # get the basic information about the `env`
         self.state_dim = env.observation_space.shape[0]
-        self.action_dim = env.action_space.shape[0]
-        self.max_action = env.action_space.high[0]
-        self.min_action = env.action_space.low[0]
+        # todo: some env don't have the following property
+        # self.action_dim = env.action_space.shape[0]
+        # self.max_action = env.action_space.high[0]
+        # self.min_action = env.action_space.low[0]
 
         self.config = config
 
-        # get random seed for each run: generate a list of random seeds using the seed specified in config
-        np.random.seed(self.config.get('seed', DEFAULT['seed']))
-        self._seeds = np.random.randint(0, 2 ** 32 - 2, size=self.run_num, dtype=np.int64)
-        # random seed of current run, updated in `self.run_reset`
-        self._seed = None
-
-        self.logger = setup_logger(self.__class__.__name__ + '_training.log')
+        self.logger = setup_logger(self.__class__.__name__ + '_training.log', name='training_data_logger')
 
         # path to store graph and data from the training
         self.results_path = './results'
@@ -73,6 +68,12 @@ class Agent:
         # record start time in {self.run_reset()}, print program running time after every run.
 
         # todo: rolling results, max action, min action
+
+        # get random seed for each run: generate a list of random seeds using the seed specified in config
+        np.random.seed(self.config.get('seed', DEFAULT['seed']))
+        self._seeds = np.random.randint(0, 2 ** 32 - 2, size=self.run_num, dtype=np.int64)
+        # random seed of current run, updated in `self.run_reset`
+        self._seed = None
 
     def set_random_seed(self, *, more_random: bool = False):
         """

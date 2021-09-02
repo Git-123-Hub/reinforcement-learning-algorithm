@@ -15,7 +15,6 @@ def setup_logger(filename, name=__name__):
     :param name: specify name for logger for distinguish
     :return: logger
     """
-    print(name)
     logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
 

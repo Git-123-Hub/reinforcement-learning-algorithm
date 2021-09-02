@@ -1,5 +1,5 @@
 ############################################
-# @Author: 123
+# @Author: Git-123-Hub
 # @Date: 2021/8/31
 # @Description: get basic information about env in gym
 ############################################
