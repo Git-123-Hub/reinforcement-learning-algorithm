@@ -63,17 +63,24 @@ class Agent:
         # record total reward of every episode, index from 0
         # {self.rewards[n][m]} represents the reward of the (n+1)th run, (m+1)th episode
 
+        # todo: different env might have different moving window
+        self.window = 100
+        self.running_rewards = np.zeros((self.run_num, self.episode_num), dtype=np.float64)
+        # average of the last `self.window` episodes' rewards, can be used to measure the algorithm's stability
+        # Note that according to openai.gym, the criteria for success(agent solves the problem) is:
+        # `self.running_rewards` reaches `self.goal`
+
         self._time = None
         # record the time of every run.
         # record start time in {self.run_reset()}, print program running time after every run.
-
-        # todo: rolling results, max action, min action
 
         # get random seed for each run: generate a list of random seeds using the seed specified in config
         np.random.seed(self.config.get('seed', DEFAULT['seed']))
         self._seeds = np.random.randint(0, 2 ** 32 - 2, size=self.run_num, dtype=np.int64)
         # random seed of current run, updated in `self.run_reset`
         self._seed = None
+
+        self.optimizer = None
 
     def set_random_seed(self, *, more_random: bool = False):
         """
@@ -121,8 +128,7 @@ class Agent:
 
     def episode_reset(self):
         """reset the agent to start another episode"""
-        # todo: use rolling_result to update learning rate
-        # self.update_learning_rate()
+        self.update_learning_rate()
 
         # set seed before env.reset(), to make sure the initial state after reset() can be the same
         # if you don't need it, comment the following line
@@ -144,9 +150,21 @@ class Agent:
                 self._episode = episode
                 self.episode_reset()
                 self.run_an_episode()
-            # calculate the time of this run
+                self.running_rewards[self._run][self._episode] = self._running_reward
+
+            # print info about this episode's training
+            # a) determine whether the agent has solved the problem
+            episode = np.argmax(self.running_rewards[self._run] >= self.goal)
+            # use np.argmax because it stops at the first True
+            # but it might return 0 if no there is no True, so another condition is needed
+            if episode > 0 or (episode == 0 and self.running_rewards[self._run][0] >= self.goal):
+                print(f'\n{Color.SUCCESS}Problem solved on episode {episode+1}, ', end='')
+            else:
+                print(f'\n{Color.FAIL}Problem NOT solved, ', end='')
+            # b) calculate the time of this run
             self._time = time.time() - self._time
             print(f' time taken: {str(datetime.timedelta(seconds=int(self._time)))}{Color.END}')
+
         self.save_results()
         print(f'{Color.INFO}Training Finished.{Color.END}\n')
 
@@ -156,6 +174,7 @@ class Agent:
     def save_results(self):
         """save training data and figure after training finishes"""
         self.plot('rewards')
+        self.plot('running_rewards')
         self.plot('length')
         self.save_data()
 
@@ -163,8 +182,8 @@ class Agent:
         """plot data to visualize the performance of the algorithm"""
         # the data to be plotted should be a ndarray of size(self.run_num, self.episode_num)
         # you can also define other data structure to inspect performance for each run, each episode
-        if data_name not in {'rewards', 'length'}:
-            raise ValueError("data_name should be 'rewards' or 'length'")
+        if data_name not in {'rewards', 'length', 'running_rewards'}:
+            raise ValueError("data_name should be 'rewards', 'length' or 'running_rewards'")
         x = np.arange(1, self.episode_num + 1)
         data = eval('self.' + data_name)
 
@@ -193,4 +212,42 @@ class Agent:
         with open(path, 'wb') as f:
             pickle.dump(data, f)
 
+    @property
+    def _running_reward(self):
+        """calculate the average of the last `self.window` episodes' rewards"""
+        return np.mean(self.rewards[self._run][max(self._episode+1-self.window, 0):self._episode+1])
+
     # todo: should test_policy in the base Agent
+
+    def update_learning_rate(self):
+        """
+        update learning rate of optimizer according to last episode's reward,
+        as the reward get closer to `self.goal`, learning rate should become lower
+        """
+
+        # todo: maybe max reward is also a good criteria
+        def _update_in_optimizer(lr):
+            for p in self.optimizer.param_groups: p['lr'] = lr
+
+        start_lr = self.config['learning_rate']
+        if self._episode == 0:  # first episode of new run, reset learning rate
+            self._learning_rate = start_lr
+            _update_in_optimizer(start_lr)
+            self.logger.info(f'learning rate reset to {start_lr}')
+            return
+        old_lr = self._learning_rate
+        pre_rolling_result = self.running_rewards[self._run][self._episode - 1]
+        if pre_rolling_result <= 0.25 * self.goal:
+            self._learning_rate = start_lr
+        elif pre_rolling_result <= 0.5 * self.goal:
+            self._learning_rate = start_lr / 2
+        elif pre_rolling_result <= 0.6 * self.goal:
+            self._learning_rate = start_lr / 10
+        elif pre_rolling_result <= 0.75 * self.goal:
+            self._learning_rate = start_lr / 20
+        else:
+            self._learning_rate = start_lr / 100
+
+        if self._learning_rate != old_lr:
+            _update_in_optimizer(self._learning_rate)
+            self.logger.info(f'change learning rate to {self._learning_rate}')

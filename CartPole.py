@@ -18,13 +18,14 @@ class QNet(nn.Module):
 
     def __init__(self):
         super(QNet, self).__init__()
-        self.linear_test_1 = nn.Linear(4, 32)
-        self.linear_test_2 = nn.Linear(32, 2)
+        self.fc = nn.Sequential(
+            nn.Linear(4, 32),
+            nn.ReLU(),
+            nn.Linear(32, 2),
+        )
 
     def forward(self, x):
-        x1 = F.relu(self.linear_test_1(x))
-        x2 = self.linear_test_2(x1)
-        return x2
+        return self.fc(x)
 
 
 config = {
@@ -33,7 +34,7 @@ config = {
         'capacity': 40000,
         'batch_size': 256,
     },
-    'seed': 12332243,
+    # 'seed': 123322433,
     'run_num': 3,
     'episode_num': 250,
     'learning_rate': 0.01,
@@ -53,4 +54,3 @@ if __name__ == '__main__':
     env = gym.make('CartPole-v0')
     agent = DQN(env, QNet, config)
     agent.train()
-    print(agent.replayMemory.__len__())

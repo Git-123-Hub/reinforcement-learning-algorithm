@@ -40,10 +40,12 @@ class DQN(Agent):
             self.save_experience()
             self.learn()
             self.state = self.next_state
-            print(f'\r{self._episode + 1}th episode: '
-                  f'{self.length[self._run][self._episode]} steps, '
-                  f'rewards: {format(self.rewards[self._run][self._episode], ".3f")}, '
-                  f'epsilon: {self.epsilon}', end='')
+        print(f'\r{format(self._episode + 1, ">3")}th episode: '
+              f'{format(self.length[self._run][self._episode], ">3")} steps, '
+              f'rewards: {format(self.rewards[self._run][self._episode], ">5.1f")}, '
+              f'running reward: {format(self._running_reward, ">7.3f")}, '
+              f'learning rate: {format(self._learning_rate, ">5")}, '
+              f'epsilon: {format(self.epsilon, ".4f")}', end='')
 
     def select_action(self):
         """select action according to `self.Q` given current state"""
