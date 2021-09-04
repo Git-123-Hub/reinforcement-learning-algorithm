@@ -3,14 +3,18 @@
 # @Date: 2021/9/1
 # @Description: implementation of Deep-Q-Learning
 ############################################
+import os
 import random
 from typing import Type
 
+import matplotlib.pyplot as plt
+import numpy as np
 import torch
-from torch import optim
 import torch.nn.functional as F
+from torch import optim
+
 from Agent import Agent
-from const import DEFAULT
+from const import DEFAULT, Color
 from replayMemory import replayMemory
 
 
@@ -79,6 +83,12 @@ class DQN(Agent):
             experiences = self.replayMemory.sample()
             loss = self.compute_loss(*experiences)
             self.perform_gradient_descent(loss)
+
+    def save_policy(self):
+        """save the parameter of the Q network(`self.Q) when the running reward reaches `self.goal`"""
+        if self._running_reward >= self.goal:
+            name = f'{self.__class__.__name__}_solve_{self.env_id}_{self._run}_{self._episode + 1}.pt'
+            torch.save(self.Q.state_dict(), os.path.join(self.policy_path, name))
 
     @property
     def epsilon(self, episode_num=None):

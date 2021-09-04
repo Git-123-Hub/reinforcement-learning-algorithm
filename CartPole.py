@@ -6,7 +6,6 @@
 
 import gym
 import torch.nn as nn
-import torch.nn.functional as F
 
 from DQN import DQN
 
@@ -34,9 +33,9 @@ config = {
         'capacity': 40000,
         'batch_size': 256,
     },
-    # 'seed': 123322433,
-    'run_num': 3,
-    'episode_num': 250,
+    'seed': 123322433,
+    'run_num': 1,
+    'episode_num': 50,
     'learning_rate': 0.01,
     'discount_factor': 0.99,
     'epsilon': [1, 0.01],

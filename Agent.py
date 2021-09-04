@@ -94,7 +94,12 @@ class Agent:
 
         if not more_random:  # get the seed and make the training deterministic
             seed = self._seeds[self._run].item()  # convert numpy.int64 to int
-            torch.manual_seed(seed)  # seed passed to torch.manual_seed() can't be None, so we call it here
+
+            # seeds for function below can't be None, so we call it here
+            torch.manual_seed(seed)
+            if torch.cuda.is_available():
+                torch.cuda.manual_seed_all(seed)
+                torch.cuda.manual_seed(seed)
         else:
             seed = None
 
@@ -106,9 +111,6 @@ class Agent:
         # torch setting:
         torch.backends.cudnn.deterministic = not more_random
         torch.backends.cudnn.benchmark = more_random
-        if torch.cuda.is_available():
-            torch.cuda.manual_seed_all(seed)
-            torch.cuda.manual_seed(seed)
 
         # gym setting
         if hasattr(gym.spaces, 'prng'):
@@ -151,6 +153,7 @@ class Agent:
                 self.episode_reset()
                 self.run_an_episode()
                 self.running_rewards[self._run][self._episode] = self._running_reward
+                self.save_policy()
 
             # print info about this episode's training
             # a) determine whether the agent has solved the problem
@@ -158,7 +161,7 @@ class Agent:
             # use np.argmax because it stops at the first True
             # but it might return 0 if no there is no True, so another condition is needed
             if episode > 0 or (episode == 0 and self.running_rewards[self._run][0] >= self.goal):
-                print(f'\n{Color.SUCCESS}Problem solved on episode {episode+1}, ', end='')
+                print(f'\n{Color.SUCCESS}Problem solved on episode {episode + 1}, ', end='')
             else:
                 print(f'\n{Color.FAIL}Problem NOT solved, ', end='')
             # b) calculate the time of this run
@@ -169,6 +172,13 @@ class Agent:
         print(f'{Color.INFO}Training Finished.{Color.END}\n')
 
     def run_an_episode(self):
+        """procedure of the agent interact with the env for a whole episode"""
+        raise NotImplementedError
+
+    def save_policy(self):
+        """save the parameters of the current policy(or Q network)"""
+        # Note that you can save the policy in a fixed step interval to evaluate the agent
+        # here, I only consider save policy when the running reward reaches `self.goal`
         raise NotImplementedError
 
     def save_results(self):
@@ -215,7 +225,7 @@ class Agent:
     @property
     def _running_reward(self):
         """calculate the average of the last `self.window` episodes' rewards"""
-        return np.mean(self.rewards[self._run][max(self._episode+1-self.window, 0):self._episode+1])
+        return np.mean(self.rewards[self._run][max(self._episode + 1 - self.window, 0):self._episode + 1])
 
     # todo: should test_policy in the base Agent
 
