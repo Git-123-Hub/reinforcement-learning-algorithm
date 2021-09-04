@@ -40,9 +40,19 @@ class DQN(Agent):
         while not self.done:
             self.length[self._run][self._episode] += 1
             self.select_action()
-            self.execute_action()
-            self.save_experience()
-            self.learn()
+            # execute action
+            self.next_state, self.reward, self.done, _ = self.env.step(self.action)
+            self.rewards[self._run][self._episode] += self.reward
+            # save experience
+            experience = (self.state, self.action, self.reward, self.next_state, self.done)
+            self.replayMemory.add(experience)
+
+            # only start to learn when there are enough experiences to sample from
+            if self.replayMemory.ready:
+                self._states, self._actions, self._rewards, self._next_states, self._dones = self.replayMemory.sample()
+                loss = F.mse_loss(self.current_states_value, self.target_value)
+                self.perform_gradient_descent(loss)
+
             self.state = self.next_state
         print(f'\r{format(self._episode + 1, ">3")}th episode: '
               f'{format(self.length[self._run][self._episode], ">3")} steps, '
@@ -69,21 +79,6 @@ class DQN(Agent):
             self.action = self.env.action_space.sample()
             self.logger.info(f'choose randomly, action: {self.action}')
 
-    def execute_action(self):
-        self.next_state, self.reward, self.done, _ = self.env.step(self.action)
-        self.rewards[self._run][self._episode] += self.reward
-
-    def save_experience(self):
-        """save the `experience` to `self.replayMemory`"""
-        experience = (self.state, self.action, self.reward, self.next_state, self.done)
-        self.replayMemory.add(experience)
-
-    def learn(self):
-        if self.replayMemory.ready:
-            experiences = self.replayMemory.sample()
-            loss = self.compute_loss(*experiences)
-            self.perform_gradient_descent(loss)
-
     def save_policy(self):
         """save the parameter of the Q network(`self.Q) when the running reward reaches `self.goal`"""
         if self._running_reward >= self.goal:
@@ -91,26 +86,25 @@ class DQN(Agent):
             torch.save(self.Q.state_dict(), os.path.join(self.policy_path, name))
 
     @property
-    def epsilon(self, episode_num=None):
+    def epsilon(self):
         """get the probability of picking action randomly
         epsilon should decay as more episodes have been seen and higher rewards we get"""
         # todo: epsilon decay
         # return self.config.get('epsilon', DEFAULT['epsilon'])
-        if episode_num is None: episode_num = self._episode
         ep_range = self.config['epsilon']
-        return ep_range[0] / (1 + episode_num / self.config["epsilon_decay_rate_denominator"])
+        return ep_range[0] / (1 + self._episode / self.config["epsilon_decay_rate_denominator"])
 
-    def compute_loss(self, states, actions, rewards, next_states, dones):
-        """compute the loss the train the {self.Q}"""
-        # calculate q_values on given {states} and given {actions} using self.Q
-        q_values = self.Q(states).gather(1, actions.long())
-        with torch.no_grad():
-            # calculate q_targets given {next_states} and take the maximum action using self.targetQ
-            q_targets_next_state = self.Q(next_states).detach().max(1)[0].unsqueeze(1)
-            q_targets = rewards + self.config['discount_factor'] * q_targets_next_state * (1 - dones)
-        loss = F.mse_loss(q_values, q_targets)
-        self.logger.info(f'Loss: {loss.item()}')
-        return loss
+    @property
+    def current_states_value(self):
+        return self.Q(self._states).gather(1, self._actions.long())
+
+    @property
+    def next_states_value(self):
+        return self.Q(self._next_states).detach().max(1)[0].unsqueeze(1)
+
+    @property
+    def target_value(self):
+        return self._rewards + self.config.get('discount_factor', 0.99) * self.next_states_value * (1 - self._dones)
 
     def perform_gradient_descent(self, loss):
         self.optimizer.zero_grad()

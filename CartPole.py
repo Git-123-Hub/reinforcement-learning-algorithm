@@ -34,7 +34,7 @@ config = {
         'batch_size': 256,
     },
     'seed': 123322433,
-    'run_num': 1,
+    'run_num': 2,
     'episode_num': 50,
     'learning_rate': 0.01,
     'clear_result': False,
