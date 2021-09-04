@@ -4,20 +4,6 @@
 # @Description: some constants used in the program
 ############################################
 
-from enum import Enum
-
-DEFAULT = {
-    'run_num': 3,
-    'episode_num': 250,
-    'seed': None,
-    'resultsPath': './results',
-    'policyPath': './policy',
-    'learning_rate': 0.01,
-    'epsilon': 0.1,
-    'clip_grad': None,
-}
-
-
 class Color:
     """color used for printing and plotting"""
     # color for print
@@ -25,3 +11,4 @@ class Color:
     SUCCESS = '\033[94m'
     FAIL = '\033[91m'
     INFO = '\033[95m'
+    WARNING = '\033[93m'

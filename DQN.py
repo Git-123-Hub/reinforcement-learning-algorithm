@@ -14,7 +14,7 @@ import torch.nn.functional as F
 from torch import optim
 
 from Agent import Agent
-from const import DEFAULT, Color
+from const import Color
 from replayMemory import replayMemory
 
 
@@ -24,7 +24,7 @@ class DQN(Agent):
         self._Q = Q_net  # constructor for Q network
         self.Q = self._Q()
         self.optimizer = optim.Adam(self.Q.parameters(),
-                                    lr=self.config.get('learning_rate', DEFAULT['learning_rate']),
+                                    lr=self.config.get('learning_rate', 0.01),
                                     eps=1e-4)
         self.replayMemory: replayMemory = replayMemory(**self.config['replay_config'])
 
@@ -33,7 +33,7 @@ class DQN(Agent):
         self.replayMemory.reset()
         self.Q = self._Q()
         self.optimizer = optim.Adam(self.Q.parameters(),
-                                    lr=self.config.get('learning_rate', DEFAULT['learning_rate']),
+                                    lr=self.config.get('learning_rate', 0.01),
                                     eps=1e-4)
 
     def run_an_episode(self):
@@ -115,7 +115,7 @@ class DQN(Agent):
     def perform_gradient_descent(self, loss):
         self.optimizer.zero_grad()
         loss.backward()
-        clip_grad = self.config.get('clip_grad', DEFAULT['clip_grad'])
+        clip_grad = self.config.get('clip_grad', None)
         if clip_grad: torch.nn.utils.clip_grad_norm_(self.Q.parameters(), clip_grad)
         self.optimizer.step()
 
@@ -147,7 +147,8 @@ class DQN(Agent):
             print(f'\rTesting policy {file_name}: episode: {episode + 1}, '
                   f'reward: {rewards[episode]}, running reward: {format(running_rewards[episode], ".2f")}', end=' ')
 
-        if any(running_rewards >= self.goal):
+        # running rewards only make sense when the agent runs at least `self.window` episodes
+        if np.any(running_rewards[self.window - 1:] >= self.goal):
             print(f'{Color.SUCCESS}Test Passed{Color.END}')
         else:
             print(f'{Color.FAIL}Test Failed{Color.END}')

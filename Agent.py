@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-from const import DEFAULT, Color
+from const import Color
 from util import setup_logger, initial_folder
 
 
@@ -41,14 +41,13 @@ class Agent:
         self.logger = setup_logger(self.__class__.__name__ + '_training.log', name='training_data_logger')
 
         # path to store graph and data from the training
-        self.results_path = './results'
-        self.policy_path = './saved policy'
+        self.results_path = self.config.get('results', './results')
+        initial_folder(self.results_path, clear=self.config.get('clear_result', False))
+        self.policy_path = self.config.get('policy', './policy')
+        initial_folder(self.policy_path, clear=self.config.get('clear_policy', False))
 
-        self.results_path = initial_folder(self.config.get('results', DEFAULT['resultsPath']))
-        self.policy_path = initial_folder(self.config.get('policy', DEFAULT['policyPath']))
-
-        self.run_num = self.config.get('run_num', DEFAULT['run_num'])  # total run num
-        self.episode_num = self.config.get('episode_num', DEFAULT['episode_num'])  # episode num of each run
+        self.run_num = self.config.get('run_num', 3)  # total run num
+        self.episode_num = self.config.get('episode_num', 250)  # episode num of each run
 
         # todo: specify a number !!!!! how to increase
         self._run, self._episode = None, None
@@ -75,7 +74,7 @@ class Agent:
         # record start time in {self.run_reset()}, print program running time after every run.
 
         # get random seed for each run: generate a list of random seeds using the seed specified in config
-        np.random.seed(self.config.get('seed', DEFAULT['seed']))
+        np.random.seed(self.config.get('seed', None))
         self._seeds = np.random.randint(0, 2 ** 32 - 2, size=self.run_num, dtype=np.int64)
         # random seed of current run, updated in `self.run_reset`
         self._seed = None
@@ -275,7 +274,7 @@ class Agent:
         # episodes should be greater than `self.window`, otherwise, it's meaningless
         elif episodes < self.window:
             episodes = self.window
-            print(f"{Color.INFO}Warning that the test episodes has been set to {self.window},"
+            print(f"{Color.WARNING}Warning that the test episodes has been set to {self.window}, "
                   f"because it's too small{Color.END}")
         # first, we set random more `random`
         self.set_random_seed(more_random=True)

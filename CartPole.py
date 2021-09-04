@@ -37,6 +37,8 @@ config = {
     'run_num': 1,
     'episode_num': 50,
     'learning_rate': 0.01,
+    'clear_result': False,
+    'clear_policy': False,
     'discount_factor': 0.99,
     'epsilon': [1, 0.01],
     "epsilon_decay_rate_denominator": 1,
@@ -53,4 +55,4 @@ if __name__ == '__main__':
     env = gym.make('CartPole-v0')
     agent = DQN(env, QNet, config)
     agent.train()
-    agent.test(5)
+    # agent.test(5)

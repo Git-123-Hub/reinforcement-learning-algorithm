@@ -28,15 +28,16 @@ def setup_logger(filename, name=__name__):
     return logger
 
 
-def initial_folder(folder):
+def initial_folder(folder, *, clear=False):
     """
     create folder if not exist, remove all the files in the folder if already exists
     :param folder: path to the folder
+    :param clear: bool indicate whether clear all the file in the folder
     :return:
     """
     if not os.path.exists(folder):
         os.makedirs(folder)
-    else:
+    elif clear:
         for filename in os.listdir(folder):
             file_path = os.path.join(folder, filename)
             try:
