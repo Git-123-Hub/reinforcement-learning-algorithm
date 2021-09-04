@@ -10,8 +10,8 @@ import random
 import time
 
 import gym
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 import torch
 
 from const import DEFAULT, Color
@@ -261,3 +261,33 @@ class Agent:
         if self._learning_rate != old_lr:
             _update_in_optimizer(self._learning_rate)
             self.logger.info(f'change learning rate to {self._learning_rate}')
+
+    def test(self, n: int = None, *, episodes=None):
+        """
+        test the performance of the policy(or Q network) saved during training
+        i.e. the parameter file saved by `self.save_policy()`
+        :type n: int, if specified, then choose `n` policies randomly from `self.policy_path`.
+        if not provided, test all the policies
+        :type episodes: int, the number of episode that each policy will be tested
+        """
+        if episodes is None:
+            episodes = self.window
+        # episodes should be greater than `self.window`, otherwise, it's meaningless
+        elif episodes < self.window:
+            episodes = self.window
+            print(f"{Color.INFO}Warning that the test episodes has been set to {self.window},"
+                  f"because it's too small{Color.END}")
+        # first, we set random more `random`
+        self.set_random_seed(more_random=True)
+        all_policies = os.listdir(self.policy_path)
+        if len(all_policies) == 0:
+            print(f'{Color.FAIL}No policy found{Color.END}')
+            return
+        policies = random.sample(all_policies, n)
+        for file_name in policies:
+            self._evaluate_policy(file_name, episodes)
+
+        print(f'{Color.INFO}Test Finished{Color.END}')
+
+    def _evaluate_policy(self, file_name, episodes):
+        raise NotImplementedError

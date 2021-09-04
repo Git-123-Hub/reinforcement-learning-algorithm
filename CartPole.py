@@ -53,3 +53,4 @@ if __name__ == '__main__':
     env = gym.make('CartPole-v0')
     agent = DQN(env, QNet, config)
     agent.train()
+    agent.test(5)
