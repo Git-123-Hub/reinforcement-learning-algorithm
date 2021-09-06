@@ -7,6 +7,7 @@
 import gym
 import torch.nn as nn
 
+from DDQN import DDQN
 from DQN import DQN
 
 
@@ -35,7 +36,7 @@ config = {
     },
     'seed': 123322433,
     'run_num': 2,
-    'episode_num': 50,
+    'episode_num': 200,
     'learning_rate': 0.01,
     'clear_result': False,
     'clear_policy': False,
@@ -54,6 +55,6 @@ config = {
 if __name__ == '__main__':
     env = gym.make('CartPole-v0')
     # test DQN
-    agent = DQN(env, QNet, config)
+    agent = DDQN(env, QNet, config)
     agent.train()
     # agent.test(5)

@@ -84,6 +84,21 @@ class DQN(Agent):
             self.action = self.env.action_space.sample()
             self.logger.info(f'choose randomly, action: {self.action}')
 
+    def perform_gradient_descent(self, loss):
+        self.optimizer.zero_grad()
+        loss.backward()
+        clip_grad = self.config.get('clip_grad', None)
+        if clip_grad: torch.nn.utils.clip_grad_norm_(self.Q.parameters(), clip_grad)
+        self.optimizer.step()
+
+    def update_target_Q(self):
+        """update target Q network if exist"""
+        if self.length[self._run].sum() % self.config.get('Q_update_interval', 0) == 0:
+            if 'tau' in self.config:
+                soft_update(self.Q, self.target_Q, self.config.get('tau'))
+            else:
+                self.target_Q = copy.deepcopy(self.Q)
+
     def save_policy(self):
         """save the parameter of the Q network(`self.Q) when the running reward reaches `self.goal`"""
         if self._running_reward >= self.goal:
@@ -110,13 +125,6 @@ class DQN(Agent):
     @property
     def target_value(self):
         return self._rewards + self.config.get('discount_factor', 0.99) * self.next_states_value * (1 - self._dones)
-
-    def perform_gradient_descent(self, loss):
-        self.optimizer.zero_grad()
-        loss.backward()
-        clip_grad = self.config.get('clip_grad', None)
-        if clip_grad: torch.nn.utils.clip_grad_norm_(self.Q.parameters(), clip_grad)
-        self.optimizer.step()
 
     def _evaluate_policy(self, file_name, episodes):
         # set up Q network for test
@@ -164,11 +172,3 @@ class DQN(Agent):
         ax.legend(loc='upper left')
         plt.savefig(os.path.join(self.results_path, name))
         fig.clear()
-
-    def update_target_Q(self):
-        """update target Q network if exist"""
-        if self.length[self._run].sum() % self.config.get('Q_update_interval', 0) == 0:
-            if 'tau' in self.config:
-                soft_update(self.Q, self.target_Q, self.config.get('tau'))
-            else:
-                self.target_Q = copy.deepcopy(self.Q)
