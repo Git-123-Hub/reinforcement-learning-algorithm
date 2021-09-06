@@ -12,3 +12,7 @@ class Color:
     FAIL = '\033[91m'
     INFO = '\033[95m'
     WARNING = '\033[93m'
+
+    # color for different agent
+    DQN = 'blue'
+    NatureDQN = 'green'

@@ -215,8 +215,9 @@ class Agent:
         #  because other variables can be calculated from it, or save some other variables.
         # todo: add some other variable: some training info, time, data, training time
         data = {
+            'env_id': self.env_id,
             'rewards': self.rewards,
-            # 'rolling_result': self.rolling_results,
+            'running_rewards': self.running_rewards,
         }
         with open(path, 'wb') as f:
             pickle.dump(data, f)

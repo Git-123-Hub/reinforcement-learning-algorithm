@@ -6,6 +6,12 @@
 
 import logging
 import os
+import pickle
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+from const import Color
 
 
 def setup_logger(filename, name=__name__):
@@ -45,3 +51,43 @@ def initial_folder(folder, *, clear=False):
             except Exception as e:
                 print(f'Failed to delete {file_path}. Reason: {e}')
     return folder
+
+
+def compare(agents):
+    """
+    compare the results of `agents` using the training data saved during training
+    :param agents: a list of agent name
+    :return: a figure showing statistic results of agents
+    """
+    root = './results'
+    env_id = None
+    # initialize a figure for the data to plot
+    fig, ax = plt.subplots()
+    ax.set_xlabel('episode')
+    ax.set_ylabel('running rewards')
+    for agent_name in agents:
+        file = os.path.join(root, f'{agent_name}_training_data.pkl')
+        with open(file, 'rb') as f:
+            data = pickle.load(f)
+
+            # make sure that these data are solving the same problem
+            if env_id is None:
+                env_id = data['env_id']
+            else:
+                assert data['env_id'] == env_id
+
+            mean = np.mean(data['running_reward'], axis=0)
+            std = np.std(data['running_reward'], axis=0)
+            x = np.arange(1, data['running_reward'].shape[1] + 1)  # get episode length
+            color = getattr(Color, agent_name)
+            ax.plot(x, mean, color=color, label=agent_name)
+            ax.plot(x, mean - std, color=color, alpha=0.1)
+            ax.plot(x, mean + std, color=color, alpha=0.1)
+            ax.fill_between(x, y1=mean - std, y2=mean + std, color=color, alpha=0.1)
+    # convert `agents`(a list of string) to a string for better look
+    names = ''.join(f'{name} ' for name in agents)
+    name = f'statistical running rewards of {names} solving {env_id}'
+    ax.set_title(name)
+    ax.legend(loc='upper left')
+    plt.savefig(os.path.join(root, name))
+    fig.clear()
