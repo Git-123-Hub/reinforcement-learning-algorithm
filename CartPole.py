@@ -7,7 +7,7 @@
 import gym
 import torch.nn as nn
 
-from DQN import DQN
+from Nature_DQN import NatureDQN
 
 
 class QNet(nn.Module):
@@ -35,7 +35,7 @@ config = {
     },
     'seed': 123322433,
     'run_num': 2,
-    'episode_num': 50,
+    'episode_num': 250,
     'learning_rate': 0.01,
     'clear_result': False,
     'clear_policy': False,
@@ -43,8 +43,8 @@ config = {
     'epsilon': [1, 0.01],
     "epsilon_decay_rate_denominator": 1,
     # "clip_grad": 0.7
-    # for nature_DQN
-    'Q_update_interval': 4,
+    # parameters for NatureDQN
+    'Q_update_interval': 20,
     # for DDQN
     # tau*Q.parameter will be copied to target_Q,
     # considering the Q is `learning`, so a bigger tau might make the algorithm more stable
@@ -53,6 +53,11 @@ config = {
 
 if __name__ == '__main__':
     env = gym.make('CartPole-v0')
-    agent = DQN(env, QNet, config)
-    agent.train()
+    # test DQN
+    # agent = DQN(env, QNet, config)
+    # agent.train()
     # agent.test(5)
+
+    # test NatureDQN
+    agent = NatureDQN(env, QNet, config)
+    agent.train()

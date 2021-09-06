@@ -1,7 +1,7 @@
 ############################################
 # @Author: Git-123-Hub
 # @Date: 2021/9/1
-# @Description: implementation of Deep-Q-Learning
+# @Description: implementation of Deep-Q-Learning(NPIS 2013)
 ############################################
 import os
 import random
@@ -52,6 +52,7 @@ class DQN(Agent):
                 self._states, self._actions, self._rewards, self._next_states, self._dones = self.replayMemory.sample()
                 loss = F.mse_loss(self.current_states_value, self.target_value)
                 self.perform_gradient_descent(loss)
+                self.update_target_Q()
 
             self.state = self.next_state
         print(f'\r{format(self._episode + 1, ">3")}th episode: '
@@ -159,3 +160,8 @@ class DQN(Agent):
         ax.legend(loc='upper left')
         plt.savefig(os.path.join(self.results_path, name))
         fig.clear()
+
+    # todo: maybe just a DQN is enough
+    def update_target_Q(self):
+        """update target Q network if exist"""
+        pass
