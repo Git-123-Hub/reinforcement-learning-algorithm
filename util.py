@@ -53,6 +53,15 @@ def initial_folder(folder, *, clear=False):
     return folder
 
 
+def soft_update(from_network, to_network, tau):
+    """
+    copy the parameters of `from_network` to `to_network` with a proportion of tau
+    i.e. update `to_network` parameter with tau of `from_network`
+    """
+    for to_p, from_p in zip(to_network.parameters(), from_network.parameters()):
+        to_p.data.copy_(tau * from_p.data + (1.0 - tau) * to_p.data)
+
+
 def compare(agents):
     """
     compare the results of `agents` using the training data saved during training

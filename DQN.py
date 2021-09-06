@@ -3,6 +3,7 @@
 # @Date: 2021/9/1
 # @Description: implementation of Deep-Q-Learning(NPIS 2013)
 ############################################
+import copy
 import os
 import random
 from typing import Type
@@ -16,6 +17,7 @@ from torch import optim
 from Agent import Agent
 from const import Color
 from replayMemory import replayMemory
+from util import soft_update
 
 
 class DQN(Agent):
@@ -23,6 +25,7 @@ class DQN(Agent):
         super(DQN, self).__init__(env, config)
         self._Q = Q_net  # constructor for Q network
         self.Q = self._Q()
+        self.target_Q = copy.deepcopy(self.Q)
         self.optimizer = optim.Adam(self.Q.parameters(),
                                     lr=self.config.get('learning_rate', 0.01),
                                     eps=1e-4)
@@ -32,6 +35,7 @@ class DQN(Agent):
         super(DQN, self).run_reset()
         self.replayMemory.reset()
         self.Q = self._Q()
+        self.target_Q = copy.deepcopy(self.Q)
         self.optimizer = optim.Adam(self.Q.parameters(),
                                     lr=self.config.get('learning_rate', 0.01),
                                     eps=1e-4)
@@ -101,7 +105,7 @@ class DQN(Agent):
 
     @property
     def next_states_value(self):
-        return self.Q(self._next_states).detach().max(1)[0].unsqueeze(1)
+        return self.target_Q(self._next_states).detach().max(1)[0].unsqueeze(1)
 
     @property
     def target_value(self):
@@ -161,7 +165,10 @@ class DQN(Agent):
         plt.savefig(os.path.join(self.results_path, name))
         fig.clear()
 
-    # todo: maybe just a DQN is enough
     def update_target_Q(self):
         """update target Q network if exist"""
-        pass
+        if self.length[self._run].sum() % self.config.get('Q_update_interval', 0) == 0:
+            if 'tau' in self.config:
+                soft_update(self.Q, self.target_Q, self.config.get('tau'))
+            else:
+                self.target_Q = copy.deepcopy(self.Q)
