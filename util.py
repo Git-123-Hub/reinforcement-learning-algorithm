@@ -77,19 +77,26 @@ def compare(agents):
     for agent_name in agents:
         file = os.path.join(root, f'{agent_name}_training_data.pkl')
         with open(file, 'rb') as f:
-            data = pickle.load(f)
+            agent = pickle.load(f)
 
             # make sure that these data are solving the same problem
             if env_id is None:
-                env_id = data['env_id']
+                env_id = agent.env_id
             else:
-                assert data['env_id'] == env_id
+                assert agent.env_id == env_id
 
-            mean = np.mean(data['running_rewards'], axis=0)
-            std = np.std(data['running_rewards'], axis=0)
-            x = np.arange(1, data['running_rewards'].shape[1] + 1)  # get episode length
-            color = getattr(Color, agent_name)
-            ax.plot(x, mean, color=color, label=agent_name)
+            # prepare data
+            x = np.arange(1, agent.running_rewards.shape[1] + 1)  # get episode length
+            mean = np.mean(agent.running_rewards, axis=0)
+            std = np.std(agent.running_rewards, axis=0)
+
+            color = getattr(Color, agent_name)  # different color for different agent
+            label = agent_name  # label for different agent
+
+            # if the agent used the dueling network, it should be shown in the label
+            if agent.dueling is True:
+                label = agent_name + '-dueling'
+            ax.plot(x, mean, color=color, label=label)
             ax.plot(x, mean - std, color=color, alpha=0.1)
             ax.plot(x, mean + std, color=color, alpha=0.1)
             ax.fill_between(x, y1=mean - std, y2=mean + std, color=color, alpha=0.1)

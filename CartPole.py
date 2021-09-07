@@ -3,6 +3,7 @@
 # @Date: 2021/9/2
 # @Description: test RL agent's performance on solving problem CartPole
 ############################################
+import pickle
 
 import gym
 import numpy as np
@@ -39,7 +40,7 @@ config = {
     },
     'seed': 123322433,
     'run_num': 2,
-    'episode_num': 150,
+    'episode_num': 30,
     'learning_rate': 0.01,
     'clear_result': False,
     'clear_policy': False,
@@ -58,7 +59,7 @@ config = {
 if __name__ == '__main__':
     env = gym.make('CartPole-v0')
     agents = [DQN, DDQN]
-    # for agent in agents:
-    #     agent(env, DuelingQNet, config).train()
-    # compare([agent.__name__ for agent in agents])
+    for agent in agents:
+        agent(env, DuelingQNet, config).train()
+    compare([agent.__name__ for agent in agents])
     # agent.test(5)

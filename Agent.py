@@ -190,7 +190,7 @@ class Agent:
         self.plot('rewards')
         self.plot('running_rewards')
         self.plot('length')
-        self.save_data()
+        self.save()
 
     def plot(self, data_name):
         """plot data to visualize the performance of the algorithm"""
@@ -212,20 +212,12 @@ class Agent:
         plt.savefig(os.path.join(self.results_path, name))
         fig.clear()
 
-    def save_data(self):
-        """save training data after training stops"""
+    def save(self):
+        """save the instance of this class after training stops"""
         name = self.__class__.__name__ + '_training_data.pkl'
         path = os.path.join(self.results_path, name)
-        # todo maybe just rewards is enough,
-        #  because other variables can be calculated from it, or save some other variables.
-        # todo: add some other variable: some training info, time, data, training time
-        data = {
-            'env_id': self.env_id,
-            'rewards': self.rewards,
-            'running_rewards': self.running_rewards,
-        }
         with open(path, 'wb') as f:
-            pickle.dump(data, f)
+            pickle.dump(self, f)
 
     @property
     def _running_reward(self):
