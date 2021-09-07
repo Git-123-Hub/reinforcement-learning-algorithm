@@ -132,11 +132,16 @@ class Agent:
         self.update_learning_rate()
 
         # set seed before env.reset(), to make sure the initial state after reset() can be the same
-        # if you don't need it, comment the following line
-        # todo: if the env.seed behave like this
+        # so that the result of the algorithm under the same random seed can be exactly same
         self.env.seed(self._seed)
-        # Note that env.reset() would also reset the seed for env
+        # however, start from an unique initial state,
+        # the agent might achieve high reward simply by remembering sequences of actions
+        # if you don't need it, comment the following line
+
         self.state = self.env.reset()
+        # Note that env.reset() would also reset the seed for env
+        # and that is the reason why we have to set seed before reset()
+
         self.action, self.next_state, self.reward, self.done = None, None, None, False
 
         self.logger.info(f'{self._run + 1}th run, {self._episode + 1}th episode start at state {self.state}')

@@ -85,9 +85,9 @@ def compare(agents):
             else:
                 assert data['env_id'] == env_id
 
-            mean = np.mean(data['running_reward'], axis=0)
-            std = np.std(data['running_reward'], axis=0)
-            x = np.arange(1, data['running_reward'].shape[1] + 1)  # get episode length
+            mean = np.mean(data['running_rewards'], axis=0)
+            std = np.std(data['running_rewards'], axis=0)
+            x = np.arange(1, data['running_rewards'].shape[1] + 1)  # get episode length
             color = getattr(Color, agent_name)
             ax.plot(x, mean, color=color, label=agent_name)
             ax.plot(x, mean - std, color=color, alpha=0.1)

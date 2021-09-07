@@ -15,4 +15,4 @@ class Color:
 
     # color for different agent
     DQN = 'blue'
-    NatureDQN = 'green'
+    DDQN = 'green'

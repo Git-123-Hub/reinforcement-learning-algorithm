@@ -5,10 +5,12 @@
 ############################################
 
 import gym
+import numpy as np
 import torch.nn as nn
 
 from DDQN import DDQN
 from DQN import DQN
+from util import compare
 
 
 class QNet(nn.Module):
@@ -36,7 +38,7 @@ config = {
     },
     'seed': 123322433,
     'run_num': 2,
-    'episode_num': 200,
+    'episode_num': 150,
     'learning_rate': 0.01,
     'clear_result': False,
     'clear_policy': False,
@@ -54,7 +56,8 @@ config = {
 
 if __name__ == '__main__':
     env = gym.make('CartPole-v0')
-    # test DQN
-    agent = DDQN(env, QNet, config)
-    agent.train()
+    agents = [DQN, DDQN]
+    # for agent in agents:
+    #     agent(env, QNet, config).train()
+    compare([agent.__name__ for agent in agents])
     # agent.test(5)

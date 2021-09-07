@@ -27,7 +27,7 @@ class replayMemory:
         add an experience to the memory
         :param experience: each experience is a tuple (state, action, reward, next_state, done)
         """
-        self.memory[self._index] = experience
+        self.memory[self._index] = np.array(experience, dtype=object)
         self._index = (self._index + 1) % len(self.memory)
         if self._size < len(self.memory):
             self._size += 1
