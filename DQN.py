@@ -25,6 +25,9 @@ class DQN(Agent):
         super(DQN, self).__init__(env, config)
         self._Q = Q_net  # constructor for Q network
         self.Q = self._Q()
+        if hasattr(self.Q, 'dueling'):
+            self.dueling = True
+            print('using the dueling network')
         self.target_Q = copy.deepcopy(self.Q)
         self.optimizer = optim.Adam(self.Q.parameters(),
                                     lr=self.config.get('learning_rate', 0.01),

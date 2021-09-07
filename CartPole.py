@@ -10,6 +10,7 @@ import torch.nn as nn
 
 from DDQN import DDQN
 from DQN import DQN
+from DuelingDQN import DuelingQNet
 from util import compare
 
 
@@ -58,6 +59,6 @@ if __name__ == '__main__':
     env = gym.make('CartPole-v0')
     agents = [DQN, DDQN]
     # for agent in agents:
-    #     agent(env, QNet, config).train()
-    compare([agent.__name__ for agent in agents])
+    #     agent(env, DuelingQNet, config).train()
+    # compare([agent.__name__ for agent in agents])
     # agent.test(5)
