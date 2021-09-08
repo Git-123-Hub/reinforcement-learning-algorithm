@@ -94,7 +94,7 @@ def compare(agents):
             label = agent_name  # label for different agent
 
             # if the agent used the dueling network, it should be shown in the label
-            if agent.dueling is True:
+            if hasattr(agent, 'dueling') and agent.dueling is True:
                 label = agent_name + '-dueling'
             ax.plot(x, mean, color=color, label=label)
             ax.plot(x, mean - std, color=color, alpha=0.1)

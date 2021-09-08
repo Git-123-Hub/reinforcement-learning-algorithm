@@ -27,7 +27,6 @@ class Agent:
         self.env = env
         self.env_id = self.env.unwrapped.spec.id
         self.goal = self.env.spec.reward_threshold
-        # todo: should i add trail
 
         # get the basic information about the `env`
         self.state_dim = env.observation_space.shape[0]
@@ -243,14 +242,14 @@ class Agent:
             self.logger.info(f'learning rate reset to {start_lr}')
             return
         old_lr = self._learning_rate
-        pre_rolling_result = self.running_rewards[self._run][self._episode - 1]
-        if pre_rolling_result <= 0.25 * self.goal:
+        pre_running_reward = self.running_rewards[self._run][self._episode - 1]
+        if pre_running_reward <= 0.25 * self.goal:
             self._learning_rate = start_lr
-        elif pre_rolling_result <= 0.5 * self.goal:
+        elif pre_running_reward <= 0.5 * self.goal:
             self._learning_rate = start_lr / 2
-        elif pre_rolling_result <= 0.6 * self.goal:
+        elif pre_running_reward <= 0.6 * self.goal:
             self._learning_rate = start_lr / 10
-        elif pre_rolling_result <= 0.75 * self.goal:
+        elif pre_running_reward <= 0.75 * self.goal:
             self._learning_rate = start_lr / 20
         else:
             self._learning_rate = start_lr / 100

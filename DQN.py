@@ -27,7 +27,7 @@ class DQN(Agent):
         self.Q = self._Q()
         if hasattr(self.Q, 'dueling'):
             self.dueling = True
-            print('using the dueling network')
+            print(f'{Color.INFO}using the dueling network{Color.END}')
         self.target_Q = copy.deepcopy(self.Q)
         self.optimizer = optim.Adam(self.Q.parameters(),
                                     lr=self.config.get('learning_rate', 0.01),
@@ -115,7 +115,8 @@ class DQN(Agent):
         # todo: epsilon decay
         # return self.config.get('epsilon', DEFAULT['epsilon'])
         ep_range = self.config['epsilon']
-        return ep_range[0] / (1 + self._episode / self.config["epsilon_decay_rate_denominator"])
+        return ep_range[0] / (1 + self.running_rewards[self._run][self._episode - 1] / self.config[
+            "epsilon_decay_rate_denominator"])
 
     @property
     def current_states_value(self):
