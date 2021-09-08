@@ -14,10 +14,10 @@ import torch
 import torch.nn.functional as F
 from torch import optim
 
-from Agent import Agent
-from const import Color
-from replayMemory import replayMemory
-from util import soft_update
+from utils.Agent import Agent
+from utils.replayMemory import replayMemory
+from utils.util import Color
+from utils.util import soft_update
 
 
 class DQN(Agent):

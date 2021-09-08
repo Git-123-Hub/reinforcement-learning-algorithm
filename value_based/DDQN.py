@@ -7,7 +7,7 @@ from typing import Type
 
 import torch
 
-from DQN import DQN
+from value_based.DQN import DQN
 
 
 class DDQN(DQN):

@@ -14,8 +14,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-from const import Color
-from util import setup_logger, initial_folder
+from utils.util import setup_logger, initial_folder
+from utils.const import Color
 
 
 class Agent:

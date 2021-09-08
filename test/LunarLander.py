@@ -1,18 +1,12 @@
 ############################################
 # @Author: Git-123-Hub
-# @Date: 2021/9/2
-# @Description: test RL agent's performance on solving problem CartPole
+# @Date: 2021/9/5
+# @Description: test RL agent's performance on solving problem LunarLander
 ############################################
-import pickle
-
 import gym
-import numpy as np
-import torch.nn as nn
+from torch import nn
 
-from DDQN import DDQN
-from DQN import DQN
-from DuelingDQN import DuelingQNet
-from util import compare
+from value_based.DQN import DQN
 
 
 class QNet(nn.Module):
@@ -23,11 +17,11 @@ class QNet(nn.Module):
     def __init__(self):
         super(QNet, self).__init__()
         self.fc = nn.Sequential(
-            nn.Linear(4, 32),
+            nn.Linear(8, 64),
             nn.ReLU(),
-            nn.Linear(32, 32),
+            nn.Linear(64, 64),
             nn.ReLU(),
-            nn.Linear(32, 2),
+            nn.Linear(64, 4),
         )
 
     def forward(self, x):
@@ -41,8 +35,8 @@ config = {
         'batch_size': 256,
     },
     # 'seed': 123322433,
-    'run_num': 10,
-    'episode_num': 1000,
+    'run_num': 4,
+    'episode_num': 500,
     'learning_rate': 0.01,
     'clear_result': False,
     'clear_policy': False,
@@ -50,24 +44,16 @@ config = {
     'epsilon': [1, 0.01],
     "epsilon_decay_rate_denominator": 1,
     # "clip_grad": 0.7
-    # parameters for NatureDQN
-    'Q_update_interval': 10,  # if not specified, update every step, i.e. equals 0
+    # for nature_DQN
+    'Q_update_interval': 10,
     # for DDQN
     # tau*Q.parameter will be copied to target_Q,
     # considering the Q is `learning`, so a bigger tau might make the algorithm more stable
-    'tau': 0.01,  # if not specified, deepcopy Q to target_Q
+    'tau': 0.05,
 }
 
 if __name__ == '__main__':
-    env = gym.make('CartPole-v1')
-    agents = [DQN, DDQN]
-    for agent in agents:
-        agent(env, QNet, config).train()
-    compare([agent.__name__ for agent in agents])
-
-    config['results'] = './result2'
-    config['policy'] = './policy2'
-    for agent in agents:
-        agent(env, DuelingQNet, config).train()
-    compare([agent.__name__ for agent in agents])
+    env = gym.make('LunarLander-v2')
+    agent = DQN(env, QNet, config)
+    agent.train()
     # agent.test(5)

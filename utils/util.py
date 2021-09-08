@@ -11,7 +11,7 @@ import pickle
 import matplotlib.pyplot as plt
 import numpy as np
 
-from const import Color
+from utils.const import Color
 
 
 def setup_logger(filename, name=__name__):
