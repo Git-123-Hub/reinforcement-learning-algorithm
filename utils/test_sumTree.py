@@ -112,6 +112,21 @@ class MyTestCase(unittest.TestCase):
         tree = get_tree()
         self.assertAlmostEqual(tree.sum, sum(tree.tree[-tree.capacity:]))
 
+    def test_tree_define(self):
+        """
+        test whether the tree still satisfy its definition
+        i.e. the value of parent node equals the sum of the value of the child nodes
+        """
+        # a binary tree with n leaf nodes will have 2*n-1 nodes in total
+        # so we walk through all the other n-1 internal nodes to ensure that it has children
+        tree = get_tree()
+        for index in range(tree.capacity - 1):
+            left_child_index = 2 * index + 1
+            right_child_index = left_child_index + 1
+            self.assertAlmostEqual(tree.tree[index], tree.tree[left_child_index] + tree.tree[right_child_index])
+            print(f'index: {index}, node value: {tree.tree[index]}, '
+                  f'left: {tree.tree[left_child_index]}, right: {tree.tree[right_child_index]}')
+
 
 if __name__ == '__main__':
     unittest.main()

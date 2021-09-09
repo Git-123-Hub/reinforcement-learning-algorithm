@@ -169,7 +169,8 @@ class Agent:
                 print(f'\n{Color.FAIL}Problem NOT solved, ', end='')
             # b) calculate the time of this run
             self._time = time.time() - self._time
-            print(f' time taken: {str(datetime.timedelta(seconds=int(self._time)))}{Color.END}')
+            print(f' total steps: {self.length.sum()},'
+                  f' time taken: {str(datetime.timedelta(seconds=int(self._time)))}{Color.END}')
 
         self.save_results()
         print(f'{Color.INFO}Training Finished.{Color.END}\n')
