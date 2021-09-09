@@ -119,3 +119,6 @@ class sumTree:
     def __len__(self):
         """number of all the leaf nodes that have been added"""
         return self._length
+
+    def __getitem__(self, item):
+        return self.tree[item + self.capacity - 1]

@@ -11,3 +11,5 @@ implementation of reinforcement learning algorithm that is easy to read and unde
   [Deep Reinforcement Learning with Double Q-learning](https://arxiv.org/abs/1509.06461)
 - Dueling DQN
   [Dueling Network Architectures for Deep Reinforcement Learning](https://arxiv.org/abs/1511.06581)
+- DDQN with prioritized experience replay
+  [PRIORITIZED EXPERIENCE REPLAY](https://arxiv.org/abs/1511.05952)

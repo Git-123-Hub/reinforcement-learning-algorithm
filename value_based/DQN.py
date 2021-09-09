@@ -32,7 +32,7 @@ class DQN(Agent):
         self.optimizer = optim.Adam(self.Q.parameters(),
                                     lr=self.config.get('learning_rate', 0.01),
                                     eps=1e-4)
-        self.replayMemory: replayMemory = replayMemory(**self.config['replay_config'])
+        self.replayMemory = replayMemory(**self.config['replay_config'])
 
     def run_reset(self):
         super(DQN, self).run_reset()
@@ -50,16 +50,11 @@ class DQN(Agent):
             # execute action
             self.next_state, self.reward, self.done, _ = self.env.step(self.action)
             self.rewards[self._run][self._episode] += self.reward
-            # save experience
-            experience = (self.state, self.action, self.reward, self.next_state, self.done)
-            self.replayMemory.add(experience)
+            self.save_experience()
 
             # only start to learn when there are enough experiences to sample from
             if self.replayMemory.ready:
-                self._states, self._actions, self._rewards, self._next_states, self._dones = self.replayMemory.sample()
-                loss = F.mse_loss(self.current_states_value, self.target_value)
-                self.perform_gradient_descent(loss)
-                self.update_target_Q()
+                self.learn()
 
             self.state = self.next_state
         print(f'\r{format(self._episode + 1, ">3")}th episode: '
@@ -86,6 +81,16 @@ class DQN(Agent):
         else:
             self.action = self.env.action_space.sample()
             self.logger.info(f'choose randomly, action: {self.action}')
+
+    def save_experience(self):
+        experience = (self.state, self.action, self.reward, self.next_state, self.done)
+        self.replayMemory.add(experience)
+
+    def learn(self):
+        self._states, self._actions, self._rewards, self._next_states, self._dones = self.replayMemory.sample()
+        loss = F.mse_loss(self.current_states_value, self.target_value)
+        self.perform_gradient_descent(loss)
+        self.update_target_Q()
 
     def perform_gradient_descent(self, loss):
         self.optimizer.zero_grad()
