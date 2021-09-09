@@ -31,6 +31,12 @@ class sumTree:
         # used to indicate the position of newly add node
         # `self._index` is the index of all the leaf nodes, count from 0 to capacity-1
 
+    # todo: test reset()
+    def reset(self):
+        self.tree = np.zeros(2 * self.capacity - 1)
+        self._length = 0
+        self._index = 0
+
     def add(self, value):
         """
         add a new node to the tree with the value provided
@@ -64,9 +70,10 @@ class sumTree:
     def update(self, index, value):
         """
         update the value of the leaf node and propagate the change to all its parents
-        :param index: the index of the node to be updated(index of the tree)
+        :param index: the index of the node to be updated(index of the leaf nodes)
         :param value: the new value of the node
         """
+        index += self.capacity - 1  # convert index of the leaf nodes to index of the tree
         delta = value - self.tree[index]
         self.tree[index] = value
         self._propagate(index, delta)
@@ -75,10 +82,11 @@ class sumTree:
         """
         find the first node in the tree whose value is greater than `value`
         :param value: value to be compared
-        :return: index of the found node(index of the tree), value of the found node
+        :return: index of the found node(index of all the leaf nodes), value of the found node
         """
-        index = self._compare(0, value)
+        index = self._compare(0, value)  # index of the tree
         found_value = self.tree[index]
+        index -= self.capacity - 1  # convert to index of the leaf nodes
         return index, found_value
 
     def _compare(self, index, value):

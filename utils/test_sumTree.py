@@ -83,16 +83,15 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(len(tree), 4)
         np.testing.assert_almost_equal(tree.tree, [1.9, 1.1, 0.8, 0.5, 0.6, 0.7, 0.1])
 
-    @staticmethod
-    def test_update():
+    def test_update(self):
         tree = get_tree()
-        tree.update(3, 0.5)
+        tree.update(0, 0.5)
         np.testing.assert_almost_equal(tree.tree, [1.4, 0.7, 0.7, 0.5, 0.2, 0.3, 0.4])
-        tree.update(4, 1.3)
+        tree.update(1, 1.3)
         np.testing.assert_almost_equal(tree.tree, [2.5, 1.8, 0.7, 0.5, 1.3, 0.3, 0.4])
-        tree.update(5, 0.8)
+        tree.update(2, 0.8)
         np.testing.assert_almost_equal(tree.tree, [3, 1.8, 1.2, 0.5, 1.3, 0.8, 0.4])
-        tree.update(6, 0.1)
+        tree.update(3, 0.1)
         np.testing.assert_almost_equal(tree.tree, [2.7, 1.8, 0.9, 0.5, 1.3, 0.8, 0.1])
 
     def test_find(self):
@@ -102,24 +101,24 @@ class MyTestCase(unittest.TestCase):
         leaf_nodes_cumsum = list(np.around(leaf_nodes_cumsum, decimals=1))
         leaf_nodes_cumsum.insert(0, 0)
         for _ in range(10):
-            self.assertEqual(tree.find(random.uniform(leaf_nodes_cumsum[0], leaf_nodes_cumsum[1])), (3, leaf_nodes[0]))
-            self.assertEqual(tree.find(random.uniform(leaf_nodes_cumsum[1], leaf_nodes_cumsum[2])), (4, leaf_nodes[1]))
-            self.assertEqual(tree.find(random.uniform(leaf_nodes_cumsum[2], leaf_nodes_cumsum[3])), (5, leaf_nodes[2]))
-            self.assertEqual(tree.find(random.uniform(leaf_nodes_cumsum[3], leaf_nodes_cumsum[4])), (6, leaf_nodes[3]))
+            self.assertEqual(tree.find(random.uniform(leaf_nodes_cumsum[0], leaf_nodes_cumsum[1])), (0, leaf_nodes[0]))
+            self.assertEqual(tree.find(random.uniform(leaf_nodes_cumsum[1], leaf_nodes_cumsum[2])), (1, leaf_nodes[1]))
+            self.assertEqual(tree.find(random.uniform(leaf_nodes_cumsum[2], leaf_nodes_cumsum[3])), (2, leaf_nodes[2]))
+            self.assertEqual(tree.find(random.uniform(leaf_nodes_cumsum[3], leaf_nodes_cumsum[4])), (3, leaf_nodes[3]))
 
     def test_sum(self):
         """test tree.sum is the value of all the value of leaf nodes"""
         tree = get_tree()
         self.assertAlmostEqual(tree.sum, sum(tree.tree[-tree.capacity:]))
 
-    def test_tree_define(self):
+    def test_tree_define(self, tree):
         """
         test whether the tree still satisfy its definition
         i.e. the value of parent node equals the sum of the value of the child nodes
         """
         # a binary tree with n leaf nodes will have 2*n-1 nodes in total
         # so we walk through all the other n-1 internal nodes to ensure that it has children
-        tree = get_tree()
+        # tree = get_tree()
         for index in range(tree.capacity - 1):
             left_child_index = 2 * index + 1
             right_child_index = left_child_index + 1
