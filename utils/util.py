@@ -10,6 +10,7 @@ import pickle
 
 import matplotlib.pyplot as plt
 import numpy as np
+import torch
 
 from utils.const import Color
 
@@ -107,3 +108,26 @@ def compare(agents):
     ax.legend(loc='upper left')
     plt.savefig(os.path.join(root, name))
     fig.clear()
+
+
+def transfer_experience(experiences):
+    """
+    transfer experience sampled form replay memory into mini-batches that can be passed to network
+    i.e. transfer a list of experiences where each element is an experience in the form of
+    (state, action, reward, next_states, done), into four parts where all the states store in an array
+    all the actions store in an array...
+    :param experiences: a list of experiences
+    """
+    # first stack the sampled experiences vertically,
+    experiences = np.vstack(experiences).transpose()
+    # so that each row represents a tuple for experience, and each row represents same component(s,a,r,d,s')
+    # after transpose, states are transferred to the first row, actions on the second row...
+
+    # transfer array to tensor to pass the the network
+    # Note that the first dimension has to be batch size, so i use np.vstack before convert to tensor
+    states = torch.from_numpy(np.vstack(experiences[0])).float()
+    actions = torch.from_numpy(np.vstack(experiences[1])).float()
+    rewards = torch.from_numpy(np.vstack(experiences[2])).float()
+    next_states = torch.from_numpy(np.vstack(experiences[3])).float()
+    dones = torch.from_numpy(np.vstack(experiences[4])).float()
+    return states, actions, rewards, next_states, dones

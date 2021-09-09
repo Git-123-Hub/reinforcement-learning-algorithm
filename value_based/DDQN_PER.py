@@ -24,7 +24,7 @@ class DDQN_PER(DDQN):
         experiences, IS_weights = self.replayMemory.sample()
         self._states, self._actions, self._rewards, self._next_states, self._dones = experiences
         td_errors = self.target_value - self.current_states_value
-        self.replayMemory.update(td_errors)
+        self.replayMemory.update(td_errors.squeeze().tolist())
         # calculate loss using IS_weights
         loss = F.mse_loss(self.current_states_value, self.target_value)
         self.perform_gradient_descent(loss)

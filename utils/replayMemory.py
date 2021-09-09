@@ -6,9 +6,12 @@
 import numpy as np
 import torch
 
+from utils.util import transfer_experience
+
 
 class replayMemory:
     """data structure where we store the agent's experience, and sample them for the agent to learn"""
+
     def __init__(self, capacity, batch_size):
         assert capacity > batch_size, 'capacity should be greater than batch size'
         self.memory = np.zeros(capacity, dtype=object)  # len(self.memory) equals the capacity
@@ -37,21 +40,7 @@ class replayMemory:
         # sample all the current useful index without duplicate(replace=False)
         indices = np.random.choice(self._size, size=batch_size, replace=False)
         experiences = self.memory[indices]
-        # transfer the array to batch that pytorch can accept, which is:
-        # all the states store in an array, all the actions store in an array, same for next_state, reward, done
-        experiences = np.vstack(experiences).transpose()
-        # so we first stack the sampled experiences vertically,
-        # so that each row represents a tuple for experience, and same component(s,a,r,d,s') stay in the same index
-        # after transpose, states are transferred to the first row, actions on the second row...
-
-        # transfer array to tensor to pass the the network
-        # Note that the first dimension has to be batch size, so i use np.vstack before convert to tensor
-        states = torch.from_numpy(np.vstack(experiences[0])).float()
-        actions = torch.from_numpy(np.vstack(experiences[1])).float()
-        rewards = torch.from_numpy(np.vstack(experiences[2])).float()
-        next_states = torch.from_numpy(np.vstack(experiences[3])).float()
-        dones = torch.from_numpy(np.vstack(experiences[4])).float()
-        return states, actions, rewards, next_states, dones
+        return transfer_experience(experiences)
 
     def __len__(self):
         return self._size
