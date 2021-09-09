@@ -31,7 +31,6 @@ class sumTree:
         # used to indicate the position of newly add node
         # `self._index` is the index of all the leaf nodes, count from 0 to capacity-1
 
-    # todo: test reset()
     def reset(self):
         self.tree = np.zeros(2 * self.capacity - 1)
         self._length = 0
@@ -120,5 +119,24 @@ class sumTree:
         """number of all the leaf nodes that have been added"""
         return self._length
 
-    def __getitem__(self, item):
-        return self.tree[item + self.capacity - 1]
+    # todo: not finished
+    def __getitem__(self, index):
+        if isinstance(index, slice):
+            print(index.start)
+            print(index.stop)
+            print(index.step)
+            start = index.start + self.capacity - 1
+            # stop = index.stop + self.capacity - 1
+            index = slice(start, None, index.step)
+            return self.tree[index]
+        elif isinstance(index, int):
+            return self.tree[index + self.capacity - 1]
+        else:
+            raise NotImplementedError
+
+    def __setitem__(self, index, value):
+        self.update(index, value)
+
+    def __str__(self):
+        """when print this sumTree, only print the leaf nodes"""
+        return np.array2string(self.tree[-self.capacity:])

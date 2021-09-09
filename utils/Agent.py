@@ -160,15 +160,15 @@ class Agent:
 
             # print info about this episode's training
             # a) calculate the total steps
-            print(f'total steps: {self.length.sum()}', end=' ')
+            print(f'\ntotal steps: {self.length.sum()}', end=' ')
             # b) determine whether the agent has solved the problem
             episode = np.argmax(self.running_rewards[self._run] >= self.goal)
             # use np.argmax because it stops at the first True(more efficient)
             # but it might return 0 if no there is no True, so another condition is needed
             if episode > 0 or (episode == 0 and self.running_rewards[self._run][0] >= self.goal):
-                print(f'\n{Color.SUCCESS}Problem solved on episode {episode + 1}, ', end=' ')
+                print(f'{Color.SUCCESS}Problem solved on episode {episode + 1}, ', end=' ')
             else:
-                print(f'\n{Color.FAIL}Problem NOT solved, ', end=' ')
+                print(f'{Color.FAIL}Problem NOT solved, ', end=' ')
             # c) calculate the time of this run
             self._time = time.time() - self._time
             print(f'time taken: {str(datetime.timedelta(seconds=int(self._time)))}{Color.END}')
