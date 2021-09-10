@@ -76,11 +76,15 @@ class prioritizedMemory:
     def ready(self):
         return self.memory.ready
 
-    # todo: return experience and its priority
     def __getitem__(self, index):
         if isinstance(index, slice):
+            # todo: use slice to get memory and its priority
             start = index.start + self.capacity - 1
             index = slice(start, None, None)
             return self.memory[index]
+        elif isinstance(index, int):
+            experience = self.memory[index]
+            priority = self.priority[index]
+            return experience, priority
         else:
             raise NotImplementedError

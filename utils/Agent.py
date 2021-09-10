@@ -159,19 +159,18 @@ class Agent:
                 self.save_policy()
 
             # print info about this episode's training
-            # a) calculate the total steps
-            print(f'\ntotal steps: {self.length.sum()}', end=' ')
-            # b) determine whether the agent has solved the problem
+            # determine whether the agent has solved the problem
             episode = np.argmax(self.running_rewards[self._run] >= self.goal)
             # use np.argmax because it stops at the first True(more efficient)
             # but it might return 0 if no there is no True, so another condition is needed
             if episode > 0 or (episode == 0 and self.running_rewards[self._run][0] >= self.goal):
-                print(f'{Color.SUCCESS}Problem solved on episode {episode + 1}, ', end=' ')
+                print(f'\n{Color.SUCCESS}Problem solved on episode {episode + 1}, ', end=' ')
             else:
-                print(f'{Color.FAIL}Problem NOT solved, ', end=' ')
-            # c) calculate the time of this run
+                print(f'\n{Color.FAIL}Problem NOT solved, ', end=' ')
+            # calculate running time and total steps of this run
             self._time = time.time() - self._time
-            print(f'time taken: {str(datetime.timedelta(seconds=int(self._time)))}{Color.END}')
+            print(f'time taken: {str(datetime.timedelta(seconds=int(self._time)))}, '
+                  f'total steps: {self.length.sum()}{Color.END}')
 
         self.save_results()
         print(f'{Color.INFO}Training Finished.{Color.END}\n')

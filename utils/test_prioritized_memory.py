@@ -39,6 +39,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(len(memory.priority), 0)
         self.assertEqual(len(memory.memory), 0)
         self.assertEqual(memory.max_priority, 1)
+        self.assertEqual(memory.ready, False)
 
 
 if __name__ == '__main__':

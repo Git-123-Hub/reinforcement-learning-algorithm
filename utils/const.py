@@ -16,3 +16,4 @@ class Color:
     # color for different agent
     DQN = 'blue'
     DDQN = 'green'
+    DDQN_PER = 'yellow'
