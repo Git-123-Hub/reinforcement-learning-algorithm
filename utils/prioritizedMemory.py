@@ -11,14 +11,12 @@ from utils.sumTree import sumTree
 from utils.util import transfer_experience
 
 
-class prioritizedMemory:
+class prioritizedMemory(replayMemory):
     """data structure that store experiences with priority and sample according to priority"""
+
     def __init__(self, capacity, batch_size, alpha, beta):
-        self.capacity = capacity
-        self.batch_size = batch_size
-        # todo: check if the priority and memory use the same index
+        super(prioritizedMemory, self).__init__(capacity, batch_size)
         self.priority = sumTree(capacity)  # store all the priority
-        self.memory = replayMemory(capacity, batch_size)  # store all the experience
 
         # record the initial value of alpha and beta
         self._alpha = alpha
@@ -30,19 +28,19 @@ class prioritizedMemory:
         # record the maximal priority for new experience to guarantee that all experience is seen at least once
         self.max_priority = 1
 
-        # record all the index of experiences that have been sampled, make it easy for updating their priority
+        # record all the index of experiences that have been sampled, make it easy for updating their priorities
         self.sample_index = np.zeros(self.batch_size, dtype=int)
 
     def reset(self):
+        super(prioritizedMemory, self).reset()
         self.priority.reset()
-        self.memory.reset()
         self.alpha = self._alpha
         self.beta = self._beta
         self.max_priority = 1
 
-    def add(self, experience, priority):
-        self.memory.add(experience)
-        self.max_priority = max(self.max_priority, priority)
+    def add(self, experience):
+        """add experience and use `self.max_priority` to initialize it's priority"""
+        super(prioritizedMemory, self).add(experience)
         self.priority.add(self.max_priority ** self.alpha)
 
     def sample(self):
@@ -70,21 +68,10 @@ class prioritizedMemory:
             # `i` represents the `i`th experience sampled, we use it to get the `i`th td_error for updating
             # `index` represents the index of the experience from `self.memory`
             # which is also the index of its priority in `self.priority`
-            self.priority.update(index, abs(td_errors[i]) ** self.alpha)
-
-    @property
-    def ready(self):
-        return self.memory.ready
+            self.priority[index] = abs(td_errors[i]) ** self.alpha
 
     def __getitem__(self, index):
-        if isinstance(index, slice):
-            # todo: use slice to get memory and its priority
-            start = index.start + self.capacity - 1
-            index = slice(start, None, None)
-            return self.memory[index]
-        elif isinstance(index, int):
-            experience = self.memory[index]
-            priority = self.priority[index]
-            return experience, priority
-        else:
-            raise NotImplementedError
+        assert type(index) == int
+        experience = self.memory[index]
+        priority = self.priority[index]
+        return experience, priority

@@ -15,11 +15,6 @@ class DDQN_PER(DDQN):
         self.replayMemory = prioritizedMemory(self.config['memory_capacity'],
                                               self.config['batch_size'], self.config['alpha'], self.config['beta'])
 
-    def save_experience(self):
-        experience = (self.state, self.action, self.reward, self.next_state, self.done)
-        priority = self.replayMemory.max_priority
-        self.replayMemory.add(experience, priority)
-
     def learn(self):
         experiences, IS_weights = self.replayMemory.sample()
         self._states, self._actions, self._rewards, self._next_states, self._dones = experiences

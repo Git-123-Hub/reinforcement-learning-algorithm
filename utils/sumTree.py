@@ -119,20 +119,9 @@ class sumTree:
         """number of all the leaf nodes that have been added"""
         return self._length
 
-    # todo: not finished
     def __getitem__(self, index):
-        if isinstance(index, slice):
-            print(index.start)
-            print(index.stop)
-            print(index.step)
-            start = index.start + self.capacity - 1
-            # stop = index.stop + self.capacity - 1
-            index = slice(start, None, index.step)
-            return self.tree[index]
-        elif isinstance(index, int):
-            return self.tree[index + self.capacity - 1]
-        else:
-            raise NotImplementedError
+        assert type(index) == int
+        return self.tree[index + self.capacity - 1]
 
     def __setitem__(self, index, value):
         self.update(index, value)

@@ -4,7 +4,6 @@
 # @Description: implementation of replay memory for DQN
 ############################################
 import numpy as np
-import torch
 
 from utils.util import transfer_experience
 
@@ -14,8 +13,9 @@ class replayMemory:
 
     def __init__(self, capacity, batch_size):
         assert capacity > batch_size, 'capacity should be greater than batch size'
-        self.memory = np.zeros(capacity, dtype=object)  # len(self.memory) equals the capacity
+        self.capacity = capacity
         self.batch_size = batch_size
+        self.memory = np.zeros(capacity, dtype=object)  # len(self.memory) equals the capacity
         self._index = 0  # current position for adding new experience
         self._size = 0  # record the number of the all the experiences stored
 
@@ -35,10 +35,9 @@ class replayMemory:
         if self._size < len(self.memory):
             self._size += 1
 
-    def sample(self, batch_size=None):
-        if batch_size is None: batch_size = self.batch_size
+    def sample(self):
         # sample all the current useful index without duplicate(replace=False)
-        indices = np.random.choice(self._size, size=batch_size, replace=False)
+        indices = np.random.choice(self._size, size=self.batch_size, replace=False)
         experiences = self.memory[indices]
         return transfer_experience(experiences)
 
@@ -46,6 +45,7 @@ class replayMemory:
         return self._size
 
     def __getitem__(self, index):
+        assert type(index) == int
         return self.memory[index]
 
     @property

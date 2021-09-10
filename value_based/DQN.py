@@ -50,7 +50,10 @@ class DQN(Agent):
             # execute action
             self.next_state, self.reward, self.done, _ = self.env.step(self.action)
             self.rewards[self._run][self._episode] += self.reward
-            self.save_experience()
+
+            # save experience
+            experience = (self.state, self.action, self.reward, self.next_state, self.done)
+            self.replayMemory.add(experience)
 
             # only start to learn when there are enough experiences to sample from
             if self.replayMemory.ready:
@@ -81,10 +84,6 @@ class DQN(Agent):
         else:
             self.action = self.env.action_space.sample()
             self.logger.info(f'choose randomly, action: {self.action}')
-
-    def save_experience(self):
-        experience = (self.state, self.action, self.reward, self.next_state, self.done)
-        self.replayMemory.add(experience)
 
     def learn(self):
         self._states, self._actions, self._rewards, self._next_states, self._dones = self.replayMemory.sample()
