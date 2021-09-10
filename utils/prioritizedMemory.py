@@ -41,7 +41,7 @@ class prioritizedMemory(replayMemory):
     def add(self, experience):
         """add experience and use `self.max_priority` to initialize it's priority"""
         super(prioritizedMemory, self).add(experience)
-        self.priority.add(self.max_priority ** self.alpha)
+        self.priority.add(self.max_priority)
 
     def sample(self):
         experiences = np.zeros(self.batch_size, dtype=object)  # sampled experiences
@@ -68,7 +68,9 @@ class prioritizedMemory(replayMemory):
             # `i` represents the `i`th experience sampled, we use it to get the `i`th td_error for updating
             # `index` represents the index of the experience from `self.memory`
             # which is also the index of its priority in `self.priority`
-            self.priority[index] = abs(td_errors[i]) ** self.alpha
+            priority = abs(td_errors[i]) ** self.alpha
+            self.priority[index] = priority
+            self.max_priority = max(self.max_priority, priority)
 
     def __getitem__(self, index):
         assert type(index) == int

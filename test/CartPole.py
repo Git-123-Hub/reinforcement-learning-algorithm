@@ -43,9 +43,9 @@ config = {
     'batch_size': 256,
     'alpha': 0.5,
     'beta': 0.5,
-    'seed': 756711267,
-    'run_num': 5,
-    'episode_num': 30,
+    # 'seed': 756711267,
+    'run_num': 1,
+    'episode_num': 300,
     'learning_rate': 0.01,
     'clear_result': False,
     'clear_policy': False,
@@ -62,10 +62,10 @@ config = {
 if __name__ == '__main__':
     env = gym.make('CartPole-v1')
     # agents = [DQN, DDQN]
-    agents = [DDQN, DDQN_PER]
+    agents = [DDQN_PER]
     for agent in agents:
         agent(env, QNet, config).train()
-    compare([agent.__name__ for agent in agents])
+    # compare([agent.__name__ for agent in agents])
 
     # config['results'] = './result2'
     # config['policy'] = './policy2'

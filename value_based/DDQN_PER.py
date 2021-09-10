@@ -6,6 +6,7 @@
 from utils.prioritizedMemory import prioritizedMemory
 from value_based.DDQN import DDQN
 import torch.nn.functional as F
+import torch
 
 
 class DDQN_PER(DDQN):
@@ -20,7 +21,12 @@ class DDQN_PER(DDQN):
         self._states, self._actions, self._rewards, self._next_states, self._dones = experiences
         td_errors = self.target_value - self.current_states_value
         self.replayMemory.update(td_errors.squeeze().tolist())
+
         # calculate loss using IS_weights
-        loss = F.mse_loss(self.current_states_value, self.target_value)
+        loss = F.mse_loss(self.current_states_value, self.target_value, reduction='none').squeeze()
+        IS_weights = torch.from_numpy(IS_weights)
+        loss = (loss * IS_weights).mean()  # element-wise multiplication
+        self.logger.info(f'loss: {loss.item()}')
+
         self.perform_gradient_descent(loss)
         self.update_target_Q()
