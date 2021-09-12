@@ -19,9 +19,8 @@ class prioritizedMemory(replayMemory):
         self.priority = sumTree(capacity)  # store all the priority
 
         # record the initial value of alpha and beta
-        self._alpha = alpha
-        self._beta = beta
-        # todo: how to change its value
+        self.alpha0 = alpha
+        self.beta0 = beta
         self.alpha = alpha
         self.beta = beta
 
@@ -34,8 +33,8 @@ class prioritizedMemory(replayMemory):
     def reset(self):
         super(prioritizedMemory, self).reset()
         self.priority.reset()
-        self.alpha = self._alpha
-        self.beta = self._beta
+        self.alpha = self.alpha0
+        self.beta = self.beta0
         self.max_priority = 1
 
     def add(self, experience):
@@ -59,7 +58,8 @@ class prioritizedMemory(replayMemory):
             experiences[i] = self.memory[index]
             priorities[i] = priority
         sample_probabilities = priorities / self.priority.sum
-        IS_weights = np.power(len(self.memory) * sample_probabilities, -self.beta)
+        # todo: what's the meaning of N: capacity or current size
+        IS_weights = np.power(self.capacity * sample_probabilities, -self.beta)
         IS_weights /= IS_weights.max()
         return transfer_experience(experiences), IS_weights
 

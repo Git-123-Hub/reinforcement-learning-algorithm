@@ -48,12 +48,11 @@ class Agent:
         self.run_num = self.config.get('run_num', 3)  # total run num
         self.episode_num = self.config.get('episode_num', 250)  # episode num of each run
 
-        # todo: specify a number !!!!! how to increase
         self._run, self._episode = None, None
         # current run num and episode num during training
         # And it will plus 1 when print to the user considering of the readability
 
-        self.length = np.zeros((self.run_num, self.episode_num), dtype=np.int)
+        self.length = np.zeros((self.run_num, self.episode_num), dtype=int)
         # record the length of every episode, index from 0
         # {self.length[n][m]} represents the length of the (n+1)th run, (m+1)th episode
 
@@ -232,8 +231,6 @@ class Agent:
     def _running_reward(self):
         """calculate the average of the last `self.window` episodes' rewards"""
         return np.mean(self.rewards[self._run][max(self._episode + 1 - self.window, 0):self._episode + 1])
-
-    # todo: should test_policy in the base Agent
 
     def update_learning_rate(self):
         """

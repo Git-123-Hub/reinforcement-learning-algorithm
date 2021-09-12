@@ -13,17 +13,18 @@ class DDQN_PER(DDQN):
     def __init__(self, env, Q_net, config):
         super(DDQN_PER, self).__init__(env, Q_net, config)
         # todo: how to write configure
-        self.replayMemory = prioritizedMemory(self.config['memory_capacity'],
-                                              self.config['batch_size'], self.config['alpha'], self.config['beta'])
+        self.replayMemory = prioritizedMemory(
+            self.config['memory_capacity'],
+            self.config['batch_size'], self.config['alpha'], self.config['beta'])
 
     def episode_reset(self):
         """implement parameter(alpha, beta) decay before episode starts"""
         super(DDQN_PER, self).episode_reset()
         # linear change of parameter alpha, beta of the prioritized replay memory
-        self.replayMemory.alpha = self.replayMemory._alpha + (1 - self.replayMemory._alpha) * self._episode / (
-                    self.episode_num - 1)
-        self.replayMemory.beta = self.replayMemory._beta + (1 - self.replayMemory._beta) * self._episode / (
-                    self.episode_num - 1)
+        self.replayMemory.alpha = self.replayMemory.alpha0 + (1 - self.replayMemory.alpha0) * self._episode / (
+                self.episode_num - 1)
+        self.replayMemory.beta = self.replayMemory.beta0 + (1 - self.replayMemory.beta0) * self._episode / (
+                self.episode_num - 1)
         # when `self.episode` equals 0(i.e. each episode starts),
         # alpha and beta are set to its initial value, which is provided in the config
         # when `self.episode` equals `self.episode_num`-1(i.e. each episode stops), alpha and beta are set to 1

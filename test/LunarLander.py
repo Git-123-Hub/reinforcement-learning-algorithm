@@ -29,7 +29,6 @@ class QNet(nn.Module):
 
 
 config = {
-    # todo use schema to validate the structure of the config
     'replay_config': {
         'capacity': 40000,
         'batch_size': 256,

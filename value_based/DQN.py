@@ -32,7 +32,7 @@ class DQN(Agent):
         self.optimizer = optim.Adam(self.Q.parameters(),
                                     lr=self.config.get('learning_rate', 0.01),
                                     eps=1e-4)
-        self.replayMemory = replayMemory(**self.config['replay_config'])
+        self.replayMemory = replayMemory(self.config.get('memory_capacity', 20000), self.config.get('batch_size', 256))
 
     def run_reset(self):
         super(DQN, self).run_reset()
