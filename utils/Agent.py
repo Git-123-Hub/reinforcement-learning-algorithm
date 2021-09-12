@@ -72,10 +72,16 @@ class Agent:
         # record the time of every run.
         # record start time in {self.run_reset()}, print program running time after every run.
 
-        # get random seed for each run: generate a list of random seeds using the seed specified in config
-        np.random.seed(self.config.get('seed', None))
-        self._seeds = np.random.randint(0, 2 ** 32 - 2, size=self.run_num, dtype=np.int64)
-        # random seed of current run, updated in `self.run_reset`
+        self._global_seed = self.config.get('seed')
+        # the 'seed' specified in config is the global seed of the training
+        # if provided, we use it to generate a list of random seeds used in each run
+        if self._global_seed is not None:
+            np.random.seed(self._global_seed)
+            self._seeds = np.random.randint(0, 2 ** 32 - 2, size=self.run_num, dtype=np.int64)
+        # if not provided, then each run of the training use 'None'
+
+        # random seed of current run, default None
+        # if `self._global_seed` is provided, it will be updated in `self.run_reset`
         self._seed = None
 
         self.optimizer = None
@@ -120,8 +126,11 @@ class Agent:
 
     def run_reset(self):
         """reset the agent before each run"""
-        # set random seed before anything to make sure the algorithm can be reproduced
-        self._seed = self.set_random_seed()
+        # if `self._global_seed` is not provided, there is no need to set random seed
+        if self._global_seed is not None:
+            # if provided, set random seed before anything to make sure the algorithm can be reproduced
+            self._seed = self.set_random_seed()
+
         # record the start time of this run
         self._time = time.time()
         print(self.__class__.__name__ + f' solves {self.env_id} {self._run + 1}th run, random seed: {self._seed}')
