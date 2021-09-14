@@ -124,15 +124,15 @@ class DQN(Agent):
         """get the probability of picking action randomly
         epsilon should decay as more episodes have been seen and higher rewards we get"""
         # todo: epsilon decay
-        ep_range = self.config['epsilon']
+        epsilon0 = self.config['epsilon']
+        min_epsilon = self.config.get('min_epsilon', 0.01)
         if self._episode == 0:
-            self._epsilon = ep_range[0]
+            self._epsilon = epsilon0
         elif self.running_rewards[self._run][self._episode - 1] >= self.goal:
-            self._epsilon = ep_range[1]
+            self._epsilon = min_epsilon
         else:
-            # self._epsilon = ep_range[0] * math.exp(-self._episode / 30)
-            self._epsilon *= 0.99
-            self._epsilon = max(self._epsilon, ep_range[1])
+            self._epsilon *= self.config.get('epsilon_decay_rate', 0.99)
+            self._epsilon = max(self._epsilon, min_epsilon)
 
     @property
     def current_states_value(self):

@@ -237,23 +237,19 @@ class Agent:
         update learning rate of optimizer according to last episode's reward,
         as the reward get closer to `self.goal`, learning rate should become lower
         """
-
-        # todo: maybe max reward is also a good criteria
-        def _update_in_optimizer(lr):
-            for p in self.optimizer.param_groups: p['lr'] = lr
-
-        # todo: learning rate min, decay rate, along with epsilon
         start_lr = self.config['learning_rate']
+        min_lr = self.config.get('min_learning_rate', 0.0001)
         if self._episode == 0:  # first episode of new run, reset learning rate
             self._learning_rate = start_lr
             self.logger.info(f'learning rate reset to {start_lr}')
         elif self.running_rewards[self._run][self._episode - 1] >= self.goal:
-            self._learning_rate = 0.0001
+            self._learning_rate = min_lr
         else:
-            self._learning_rate *= 0.99
-            self._learning_rate = max(self._learning_rate, 0.0001)
-        _update_in_optimizer(self._learning_rate)
-        return
+            self._learning_rate *= self.config.get('learning_rate_decay_rate', 0.99)
+            self._learning_rate = max(self._learning_rate, min_lr)
+
+        # update learning rate in optimizer
+        for p in self.optimizer.param_groups: p['lr'] = self._learning_rate
 
     def test(self, n: int = None, *, episodes=None):
         """

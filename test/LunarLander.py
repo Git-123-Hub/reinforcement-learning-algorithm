@@ -6,6 +6,10 @@
 import gym
 from torch import nn
 
+from utils.const import get_base_config
+from utils.util import compare
+from value_based.DDQN import DDQN
+from value_based.DDQN_PER import DDQN_PER
 from value_based.DQN import DQN
 
 
@@ -28,29 +32,14 @@ class QNet(nn.Module):
         return self.fc(x)
 
 
-config = {
-    'replay_config': {
-        'capacity': 40000,
-        'batch_size': 256,
-    },
-    # 'seed': 123322433,
-    'run_num': 4,
-    'episode_num': 500,
-    'learning_rate': 0.01,
-    'clear_result': False,
-    'clear_policy': False,
-    'discount_factor': 0.99,
-    'epsilon': [1, 0.01],
-    # "clip_grad": 0.7
-    # for nature_DQN
-    'Q_update_interval': 10,
-    # for DDQN
-    # tau*Q.parameter will be copied to target_Q,
-    # considering the Q is `learning`, so a bigger tau might make the algorithm more stable
-    'tau': 0.05,
-}
-
 if __name__ == '__main__':
+    config = get_base_config()
+    config['seed'] = 123782433
+    config['Q_update_interval'] = 20
+    config['tau'] = 0.3
+
+    config['results'] = './LunarLander-results'
+    config['policy'] = './LunarLander-policy'
     env = gym.make('LunarLander-v2')
     agent = DQN(env, QNet, config)
     agent.train()

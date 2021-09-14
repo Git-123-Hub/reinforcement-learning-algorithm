@@ -7,6 +7,7 @@
 import gym
 import torch.nn as nn
 
+from utils.const import get_base_config
 from utils.util import compare
 from value_based.DDQN import DDQN
 from value_based.DDQN_PER import DDQN_PER
@@ -33,27 +34,11 @@ class QNet(nn.Module):
         return self.fc(x)
 
 
-config = {
-    'memory_capacity': 20000,
-    'batch_size': 256,
-    'alpha': 0.5,
-    'beta': 0.5,
-    # 'seed': 756711267,
-    'run_num': 1,
-    'episode_num': 300,
-    'learning_rate': 0.01,
-    'clear_result': False,
-    'clear_policy': False,
-    'discount_factor': 0.99,
-    'epsilon': [1, 0.01],
-    # soft update parameter, if not specified, deepcopy Q to target_Q
-    'tau': 0.3,
-    # "clip_grad": 0.7,
-    # parameters for NatureDQN
-    'Q_update_interval': 50,  # if not specified, update every step, i.e. equals 0
-}
-
 if __name__ == '__main__':
+    config = get_base_config()
+    config['seed'] = 75071267
+    config['Q_update_interval'] = 10
+
     env = gym.make('CartPole-v1')
     # agents = [DQN, DDQN]
     agents = [DDQN_PER]
