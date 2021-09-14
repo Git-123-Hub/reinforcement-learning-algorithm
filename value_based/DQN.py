@@ -34,6 +34,8 @@ class DQN(Agent):
                                     eps=1e-4)
         self.replayMemory = replayMemory(self.config.get('memory_capacity', 20000), self.config.get('batch_size', 256))
 
+        self._epsilon = None  # decay according to episode number during training
+
     def run_reset(self):
         super(DQN, self).run_reset()
         self.replayMemory.reset()
@@ -42,6 +44,10 @@ class DQN(Agent):
         self.optimizer = optim.Adam(self.Q.parameters(),
                                     lr=self.config.get('learning_rate', 0.01),
                                     eps=1e-4)
+
+    def episode_reset(self):
+        super(DQN, self).episode_reset()
+        self.update_epsilon()
 
     def run_an_episode(self):
         while not self.done:
@@ -65,13 +71,13 @@ class DQN(Agent):
               f'rewards: {format(self.rewards[self._run][self._episode], ">5.1f")}, '
               f'running reward: {format(self._running_reward, ">7.3f")}, '
               f'learning rate: {format(self._learning_rate, ">5")}, '
-              f'epsilon: {format(self.epsilon, ".4f")}', end='')
+              f'epsilon: {format(self._epsilon, ".4f")}', end='')
 
     def select_action(self):
         """select action according to `self.Q` given current state"""
         # todo: check state dim
         state = torch.tensor(self.state).float().unsqueeze(0)
-        if random.random() > self.epsilon:
+        if random.random() > self._epsilon:
             # some modules behave differently in training/evaluation mode, e.g. Dropout, BatchNorm
             self.Q.eval()
             with torch.no_grad():
@@ -88,6 +94,7 @@ class DQN(Agent):
     def learn(self):
         self._states, self._actions, self._rewards, self._next_states, self._dones = self.replayMemory.sample()
         loss = F.mse_loss(self.current_states_value, self.target_value)
+        self.logger.info(f'loss: {loss.item()}')
         self.perform_gradient_descent(loss)
         self.update_target_Q()
 
@@ -112,15 +119,19 @@ class DQN(Agent):
             name = f'{self.__class__.__name__}_solve_{self.env_id}_{self._run}_{self._episode + 1}.pt'
             torch.save(self.Q.state_dict(), os.path.join(self.policy_path, name))
 
-    @property
-    def epsilon(self):
+    def update_epsilon(self):
         """get the probability of picking action randomly
         epsilon should decay as more episodes have been seen and higher rewards we get"""
         # todo: epsilon decay
-        # return self.config.get('epsilon', DEFAULT['epsilon'])
         ep_range = self.config['epsilon']
-        return ep_range[0] / (1 + self.running_rewards[self._run][self._episode - 1] / self.config[
-            "epsilon_decay_rate_denominator"])
+        if self._episode == 0:
+            self._epsilon = ep_range[0]
+        elif self.running_rewards[self._run][self._episode - 1] >= self.goal:
+            self._epsilon = ep_range[1]
+        else:
+            # self._epsilon = ep_range[0] * math.exp(-self._episode / 30)
+            self._epsilon *= 0.99
+            self._epsilon = max(self._epsilon, ep_range[1])
 
     @property
     def current_states_value(self):

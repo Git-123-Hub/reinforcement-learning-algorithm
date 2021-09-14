@@ -242,28 +242,18 @@ class Agent:
         def _update_in_optimizer(lr):
             for p in self.optimizer.param_groups: p['lr'] = lr
 
+        # todo: learning rate min, decay rate, along with epsilon
         start_lr = self.config['learning_rate']
         if self._episode == 0:  # first episode of new run, reset learning rate
             self._learning_rate = start_lr
-            _update_in_optimizer(start_lr)
             self.logger.info(f'learning rate reset to {start_lr}')
-            return
-        old_lr = self._learning_rate
-        pre_running_reward = self.running_rewards[self._run][self._episode - 1]
-        if pre_running_reward <= 0.25 * self.goal:
-            self._learning_rate = start_lr
-        elif pre_running_reward <= 0.5 * self.goal:
-            self._learning_rate = start_lr / 2
-        elif pre_running_reward <= 0.6 * self.goal:
-            self._learning_rate = start_lr / 10
-        elif pre_running_reward <= 0.75 * self.goal:
-            self._learning_rate = start_lr / 20
+        elif self.running_rewards[self._run][self._episode - 1] >= self.goal:
+            self._learning_rate = 0.0001
         else:
-            self._learning_rate = start_lr / 100
-
-        if self._learning_rate != old_lr:
-            _update_in_optimizer(self._learning_rate)
-            self.logger.info(f'change learning rate to {self._learning_rate}')
+            self._learning_rate *= 0.99
+            self._learning_rate = max(self._learning_rate, 0.0001)
+        _update_in_optimizer(self._learning_rate)
+        return
 
     def test(self, n: int = None, *, episodes=None):
         """

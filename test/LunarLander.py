@@ -41,7 +41,6 @@ config = {
     'clear_policy': False,
     'discount_factor': 0.99,
     'epsilon': [1, 0.01],
-    "epsilon_decay_rate_denominator": 1,
     # "clip_grad": 0.7
     # for nature_DQN
     'Q_update_interval': 10,

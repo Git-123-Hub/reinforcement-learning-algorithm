@@ -46,12 +46,11 @@ config = {
     'clear_policy': False,
     'discount_factor': 0.99,
     'epsilon': [1, 0.01],
-    "epsilon_decay_rate_denominator": 1,
     # soft update parameter, if not specified, deepcopy Q to target_Q
-    'tau': 0.01,
-    # "clip_grad": 0.7
+    'tau': 0.3,
+    # "clip_grad": 0.7,
     # parameters for NatureDQN
-    'Q_update_interval': 10,  # if not specified, update every step, i.e. equals 0
+    'Q_update_interval': 50,  # if not specified, update every step, i.e. equals 0
 }
 
 if __name__ == '__main__':
