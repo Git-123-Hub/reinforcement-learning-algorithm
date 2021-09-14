@@ -13,3 +13,23 @@ implementation of reinforcement learning algorithm that is easy to read and unde
   [Dueling Network Architectures for Deep Reinforcement Learning](https://arxiv.org/abs/1511.06581)
 - DDQN with prioritized experience replay
   [PRIORITIZED EXPERIENCE REPLAY](https://arxiv.org/abs/1511.05952)
+
+# online result
+
+> training result of the agent trying to solve a problem from a scratch
+
+### Acrobot-v1
+
+![Acrobot-v1](results/Acrobot-v1-online.png)
+
+# offline result
+
+> online training is not always stable<br>
+> sometimes the agent gets a high reward(or running reward)<br>
+> then its performance would decline rapidly.<br>
+> so I choose some policy during the training to test the agent's performance
+
+### Acrobot-v1
+
+![Acrobot-v1](results/Acrobot-v1-offline.png)
+![Acrobot-v1-visualize](results/Acrobot-v1.gif)

@@ -6,6 +6,7 @@
 import copy
 import os
 import random
+import time
 from typing import Type
 
 import matplotlib.pyplot as plt
@@ -162,6 +163,8 @@ class DQN(Agent):
             state = self.env.reset()
             done = False
             while not done:
+                self.env.render()
+                time.sleep(0.03)
                 state = torch.tensor(state).float().unsqueeze(0)
                 with torch.no_grad(): actions_value = self.Q(state)
                 action = actions_value.argmax().item()

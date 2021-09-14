@@ -63,20 +63,20 @@ def soft_update(from_network, to_network, tau):
         to_p.data.copy_(tau * from_p.data + (1.0 - tau) * to_p.data)
 
 
-def compare(agents):
+def compare(agents, path):
     """
     compare the results of `agents` using the training data saved during training
     :param agents: a list of agent name
+    :param path: folder where training data is stored
     :return: a figure showing statistic results of agents
     """
-    root = './results'
     env_id = None
     # initialize a figure for the data to plot
     fig, ax = plt.subplots()
     ax.set_xlabel('episode')
     ax.set_ylabel('running rewards')
     for agent_name in agents:
-        file = os.path.join(root, f'{agent_name}_training_data.pkl')
+        file = os.path.join(path, f'{agent_name}_training_data.pkl')
         with open(file, 'rb') as f:
             agent = pickle.load(f)
 
@@ -106,7 +106,7 @@ def compare(agents):
     name = f'statistical running rewards of {names} solving {env_id}'
     ax.set_title(name)
     ax.legend(loc='upper left')
-    plt.savefig(os.path.join(root, name))
+    plt.savefig(os.path.join(path, name))
     fig.clear()
 
 
