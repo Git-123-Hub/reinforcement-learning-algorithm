@@ -1,2 +1,4 @@
 .idea
 *.log
+test/*_policy/
+test/*_results/

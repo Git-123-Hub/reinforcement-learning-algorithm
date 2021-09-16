@@ -166,6 +166,8 @@ class Agent:
                 self.running_rewards[self._run][self._episode] = self._running_reward
                 self.save_policy()
 
+            self.plot_run_result()
+
             # print info about this episode's training
             # determine whether the agent has solved the problem
             episode = np.argmax(self.running_rewards[self._run] >= self.goal)
@@ -193,8 +195,24 @@ class Agent:
         # here, I only consider save policy when the running reward reaches `self.goal`
         raise NotImplementedError
 
+    def plot_run_result(self):
+        """plot reward, running reward, goal at the same figure"""
+        fig, ax = plt.subplots()
+        ax.set_xlabel('episode')
+        ax.set_ylabel('reward')
+        x = np.arange(1, self.episode_num + 1)
+        ax.plot(x, self.rewards[self._run], label='reward')
+        ax.plot(x, self.running_rewards[self._run], label='running reward')
+        ax.hlines(y=self.goal, xmin=1, xmax=self.episode_num, colors='red', label='goal')
+        ax.legend(loc='upper left')
+        name = f'result of {self.__class__.__name__} solving {self.env_id}({self._run + 1}th run)'
+        ax.set_title(name)
+        plt.savefig(os.path.join(self.results_path, name))
+        fig.clear()
+
     def save_results(self):
         """save training data and figure after training finishes"""
+        # todo: may be these plot method can be removed
         self.plot('rewards')
         self.plot('running_rewards')
         self.plot('length')

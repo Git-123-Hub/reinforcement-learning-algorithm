@@ -163,8 +163,8 @@ class DQN(Agent):
             state = self.env.reset()
             done = False
             while not done:
-                self.env.render()
-                time.sleep(0.03)
+                # self.env.render()
+                # time.sleep(0.01)
                 state = torch.tensor(state).float().unsqueeze(0)
                 with torch.no_grad(): actions_value = self.Q(state)
                 action = actions_value.argmax().item()
@@ -181,6 +181,7 @@ class DQN(Agent):
             print(f'{Color.SUCCESS}Test Passed{Color.END}')
         else:
             print(f'{Color.FAIL}Test Failed{Color.END}')
+            os.remove(file)
 
         # plot the test result of this policy
         fig, ax = plt.subplots()
@@ -190,7 +191,9 @@ class DQN(Agent):
         ax.set_title(name)
         ax.plot(np.arange(1, episodes + 1), rewards, label='test')
         ax.plot(np.arange(1, episodes + 1), running_rewards, label='running rewards')
-        ax.plot(np.arange(1, episodes + 1), np.ones(episodes) * self.goal, label='goal', alpha=0.5)
+        ax.hlines(y=self.goal, xmin=1, xmax=self.episode_num + 1, label='goal', alpha=0.5)
         ax.legend(loc='upper left')
         plt.savefig(os.path.join(self.results_path, name))
         fig.clear()
+        # todo: another way to handle multiple figures
+        plt.close('all')
