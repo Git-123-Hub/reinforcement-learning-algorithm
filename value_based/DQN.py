@@ -56,6 +56,8 @@ class DQN(Agent):
             self.select_action()
             # execute action
             self.next_state, self.reward, self.done, _ = self.env.step(self.action)
+            # self.env.render()
+
             self.rewards[self._run][self._episode] += self.reward
 
             # save experience
@@ -181,6 +183,9 @@ class DQN(Agent):
             print(f'{Color.SUCCESS}Test Passed{Color.END}')
         else:
             print(f'{Color.FAIL}Test Failed{Color.END}')
+            # consider there might be a lot of policies saved
+            # you can delete a policy if it fails the test
+            # or you can comment the line below to not to delete it
             os.remove(file)
 
         # plot the test result of this policy
@@ -191,7 +196,7 @@ class DQN(Agent):
         ax.set_title(name)
         ax.plot(np.arange(1, episodes + 1), rewards, label='test')
         ax.plot(np.arange(1, episodes + 1), running_rewards, label='running rewards')
-        ax.hlines(y=self.goal, xmin=1, xmax=self.episode_num + 1, label='goal', alpha=0.5)
+        ax.hlines(y=self.goal, xmin=1, xmax=episodes, label='goal', alpha=0.5)
         ax.legend(loc='upper left')
         plt.savefig(os.path.join(self.results_path, name))
         fig.clear()

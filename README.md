@@ -18,6 +18,10 @@ implementation of reinforcement learning algorithm that is easy to read and unde
 
 > training result of the agent trying to solve a problem from a scratch
 
+### CartPole-v1
+
+![CartPole-v1](results/CartPole-v1-online.png)
+
 ### Acrobot-v1
 
 ![Acrobot-v1](results/Acrobot-v1-online.png)
@@ -28,6 +32,11 @@ implementation of reinforcement learning algorithm that is easy to read and unde
 > sometimes the agent gets a high reward(or running reward)<br>
 > then its performance would decline rapidly.<br>
 > so I choose some policy during the training to test the agent's performance
+
+### CartPole-v1
+
+![CartPole-v1](results/CartPole-v1-offline.png)
+![CartPole-v1-visualize](results/CartPole-v1.gif)
 
 ### Acrobot-v1
 

@@ -23,11 +23,11 @@ class QNet(nn.Module):
     def __init__(self):
         super(QNet, self).__init__()
         self.fc = nn.Sequential(
-            nn.Linear(4, 32),
+            nn.Linear(4, 48),
             nn.ReLU(),
-            nn.Linear(32, 32),
+            nn.Linear(48, 48),
             nn.ReLU(),
-            nn.Linear(32, 2),
+            nn.Linear(48, 2),
         )
 
     def forward(self, x):
@@ -36,17 +36,19 @@ class QNet(nn.Module):
 
 if __name__ == '__main__':
     config = get_base_config()
-    config['seed'] = 75071267
-    config['Q_update_interval'] = 10
+    config['results'] = './CartPole_results'
+    config['policy'] = './CartPole_policy'
+    config['seed'] = 7511267
+    config['episode_num'] = 1000
+    config['run_num'] = 5
+    config['min_epsilon'] = 0.001
+    config['Q_update_interval'] = 20
+    config['tau'] = 0.3
 
     env = gym.make('CartPole-v1')
-    # agents = [DQN, DDQN]
-    agents = [DDQN_PER]
+    agents = [DDQN]
+    # agents = [DDQN, DDQN_PER]
     for agent in agents:
         agent(env, QNet, config).train()
-    # compare([agent.__name__ for agent in agents])
-
-    # config['results'] = './result2'
-    # config['policy'] = './policy2'
-    # for agent in agents:
-    #     agent(env, DuelingQNet, config).train()
+        agent(env, QNet, config).test(10)
+    compare([agent.__name__ for agent in agents], config['results'])
