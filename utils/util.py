@@ -63,6 +63,7 @@ def soft_update(from_network, to_network, tau):
         to_p.data.copy_(tau * from_p.data + (1.0 - tau) * to_p.data)
 
 
+# todo: move this function inside the agent
 def compare(agents, path):
     """
     compare the results of `agents` using the training data saved during training

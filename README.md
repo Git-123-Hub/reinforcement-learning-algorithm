@@ -13,6 +13,7 @@ implementation of reinforcement learning algorithm that is easy to read and unde
   [Dueling Network Architectures for Deep Reinforcement Learning](https://arxiv.org/abs/1511.06581)
 - DDQN with prioritized experience replay
   [PRIORITIZED EXPERIENCE REPLAY](https://arxiv.org/abs/1511.05952)
+- REINFORCE(Monte-Carlo Policy Gradient)
 
 # online result
 

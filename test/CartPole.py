@@ -6,7 +6,9 @@
 
 import gym
 import torch.nn as nn
+from torch.distributions import Categorical
 
+from policy_based.REINFORCE import REINFORCE
 from utils.const import get_base_config
 from utils.util import compare
 from value_based.DDQN import DDQN
@@ -34,21 +36,44 @@ class QNet(nn.Module):
         return self.fc(x)
 
 
+class Policy(nn.Module):
+
+    def __init__(self):
+        super(Policy, self).__init__()
+        # input state size, output probability on each action
+        self.fc = nn.Sequential(
+            nn.Linear(4, 128),
+            nn.Dropout(p=0.6),
+            nn.Linear(128, 2),
+            nn.ReLU(),
+            nn.Softmax(dim=1)
+        )
+
+    def forward(self, state):
+        probs = self.fc(state)
+        m = Categorical(probs)
+        action = m.sample()
+        return action.item(), m.log_prob(action)
+
+
 if __name__ == '__main__':
     config = get_base_config()
     config['results'] = './CartPole_results'
     config['policy'] = './CartPole_policy'
     config['seed'] = 7511267
-    config['episode_num'] = 1000
     config['run_num'] = 5
+    config['episode_num'] = 1000
     config['min_epsilon'] = 0.001
     config['Q_update_interval'] = 20
     config['tau'] = 0.3
 
     env = gym.make('CartPole-v1')
-    agents = [DDQN]
-    # agents = [DDQN, DDQN_PER]
-    for agent in agents:
-        agent(env, QNet, config).train()
-        agent(env, QNet, config).test(10)
-    compare([agent.__name__ for agent in agents], config['results'])
+    # agents = [DDQN]
+    # # agents = [DDQN, DDQN_PER]
+    # for agent in agents:
+    #     agent(env, QNet, config).train()
+    #     agent(env, QNet, config).test(10)
+    # compare([agent.__name__ for agent in agents], config['results'])
+
+    agent = REINFORCE(env, Policy, config)
+    agent.train()
