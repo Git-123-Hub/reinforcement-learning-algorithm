@@ -75,5 +75,7 @@ if __name__ == '__main__':
     #     agent(env, QNet, config).test(10)
     # compare([agent.__name__ for agent in agents], config['results'])
 
+    config['learning_rate_decay_rate'] = 1
     agent = REINFORCE(env, Policy, config)
-    agent.train()
+    # agent.train()
+    agent.test(10)
