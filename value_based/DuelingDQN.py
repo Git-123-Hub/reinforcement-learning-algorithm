@@ -11,7 +11,6 @@ from torch import nn
 
 
 class DuelingQNet(nn.Module):
-    # todo: action dim for discrete env
     def __init__(self, state_dim=4, action_dim=2):
         super(DuelingQNet, self).__init__()
         self.dueling = True

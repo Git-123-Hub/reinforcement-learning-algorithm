@@ -21,14 +21,14 @@ class QNet(nn.Module):
     input state, output an array of length action space
     """
 
-    def __init__(self):
+    def __init__(self, state_dim, action_dim):
         super(QNet, self).__init__()
         self.fc = nn.Sequential(
-            nn.Linear(6, 32),
+            nn.Linear(state_dim, 32),
             nn.ReLU(),
             nn.Linear(32, 32),
             nn.ReLU(),
-            nn.Linear(32, 3),
+            nn.Linear(32, action_dim),
         )
 
     def forward(self, x):

@@ -22,10 +22,10 @@ from utils.util import soft_update
 
 
 class DQN(Agent):
-    def __init__(self, env, Q_net: Type[torch.nn.Module], config):
+    def __init__(self, env, Q_net, config):
         super(DQN, self).__init__(env, config)
         self._Q = Q_net  # constructor for Q network
-        self.Q = self._Q()
+        self.Q = self._Q(self.state_dim, self.action_dim)
         if hasattr(self.Q, 'dueling'):
             self.dueling = True
             print(f'{Color.INFO}using the dueling network{Color.END}')
@@ -40,7 +40,7 @@ class DQN(Agent):
     def run_reset(self):
         super(DQN, self).run_reset()
         self.replayMemory.reset()
-        self.Q = self._Q()
+        self.Q = self._Q(self.state_dim, self.action_dim)
         self.target_Q = copy.deepcopy(self.Q)
         self.optimizer = optim.Adam(self.Q.parameters(),
                                     lr=self.config.get('learning_rate', 0.01),

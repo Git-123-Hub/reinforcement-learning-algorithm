@@ -28,12 +28,12 @@ class Agent:
         self.env_id = self.env.unwrapped.spec.id
         self.goal = self.env.spec.reward_threshold
 
-        # get the basic information about the `env`
+        # get state_dim and action_dim for initializing the network
         self.state_dim = env.observation_space.shape[0]
-        # todo: some env don't have the following property
-        # self.action_dim = env.action_space.shape[0]
-        # self.max_action = env.action_space.high[0]
-        # self.min_action = env.action_space.low[0]
+        if env.action_space.__class__.__name__ == 'Discrete':
+            self.action_dim = env.action_space.n
+        elif env.action_space.__class__.__name__ == 'Box':
+            self.action_dim = env.action_space.shape[0]
 
         self.config = config
 

@@ -19,12 +19,12 @@ class REINFORCE(Agent):
     def __init__(self, env, policyNet, config):
         super(REINFORCE, self).__init__(env, config)
         self._policyNet = policyNet
-        self.policy = self._policyNet()
+        self.policy = self._policyNet(self.state_dim, self.action_dim)
         self.optimizer = optim.Adam(self.policy.parameters(), lr=self.config.get('learning_rate', 0.01))
 
     def run_reset(self):
         super(REINFORCE, self).run_reset()
-        self.policy = self._policyNet()
+        self.policy = self._policyNet(self.state_dim, self.action_dim)
         self.optimizer = optim.Adam(self.policy.parameters(), lr=self.config.get('learning_rate', 0.01))
 
     def run_an_episode(self):
