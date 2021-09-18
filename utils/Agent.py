@@ -277,6 +277,8 @@ class Agent:
         if not provided, test all the policies
         :type episodes: int, the number of episode that each policy will be tested
         """
+        # Note that a subclass need to inherit method `load_policy()` and `test_action()`
+
         if episodes is None:
             episodes = self.window
         # episodes should be greater than `self.window`, otherwise, it's meaningless
@@ -284,17 +286,84 @@ class Agent:
             episodes = self.window
             print(f"{Color.WARNING}Warning that the test episodes has been set to {self.window}, "
                   f"because it's too small{Color.END}")
+
         # first, we set random more `random`
         self.set_random_seed(more_random=True)
-        all_policies = os.listdir(self.policy_path)
-        if len(all_policies) == 0:
+
+        policies = os.listdir(self.policy_path)
+        if len(policies) == 0:
             print(f'{Color.FAIL}No policy found{Color.END}')
             return
-        policies = random.sample(all_policies, n)
+
+        if n is not None:
+            policies = random.sample(policies, n)
+
+        # plot the test result of this policy
+        fig, ax = plt.subplots()
+
         for file_name in policies:
-            self._evaluate_policy(file_name, episodes)
+            file = os.path.join(self.policy_path, file_name)
+            # load the parameters saved for testing
+            # the network might be Q or policy, so this method should be inherited by subclass
+            self.load_policy(file)
+
+            # define some variable to record performance
+            rewards = np.zeros(episodes)
+            running_rewards = np.zeros(episodes)
+            # remake the env just in case that the training environment is different from the official one
+            env = gym.make(self.env_id)
+            goal = env.spec.reward_threshold
+            for episode in range(episodes):  # test for given episodes
+                env.seed()
+                state = env.reset()
+                done = False
+
+                while not done:  # test for an episode
+                    # you can uncomment the following two lines to visualize the procedure and not to fast
+                    # self.env.render()
+                    # time.sleep(0.01)
+
+                    # get action according to the network
+                    # because the network might behave different(the output is unknown)
+                    # so this method should also be inherited by subclass
+                    action = self.test_action(state)
+                    next_state, reward, done, _ = env.step(action)
+                    rewards[episode] += reward
+                    state = next_state
+
+                running_rewards[episode] = np.mean(rewards[max(episode - self.window + 1, 0):episode + 1])
+                print(f'\rTesting policy {file_name}: episode: {episode + 1}, '
+                      f'reward: {rewards[episode]}, '
+                      f'running reward: {format(running_rewards[episode], ".2f")}', end=' ')
+
+            # evaluate the performance of the testing
+            # running rewards only make sense when the agent runs at least `self.window` episodes
+            if np.any(running_rewards[self.window - 1:] >= goal):
+                print(f'{Color.SUCCESS}Test Passed{Color.END}')
+            else:
+                print(f'{Color.FAIL}Test Failed{Color.END}')
+                # consider there might be a lot of policies saved
+                # you can delete a policy if it fails the test
+                # or you may comment the line below to not to delete it
+                os.remove(file)
+
+            ax.set_xlabel('episode')
+            ax.set_ylabel('rewards')
+            name = f'{os.path.splitext(file_name)[0]} test results'  # get filename without extension
+            ax.set_title(name)
+            ax.plot(np.arange(1, episodes + 1), rewards, label='test')
+            ax.plot(np.arange(1, episodes + 1), running_rewards, label='running rewards')
+            ax.hlines(y=goal, xmin=1, xmax=episodes, label='goal', alpha=0.5)
+            ax.legend(loc='upper left')
+            plt.savefig(os.path.join(self.results_path, name))
+            fig.clear()
 
         print(f'{Color.INFO}Test Finished{Color.END}')
 
-    def _evaluate_policy(self, file_name, episodes):
+    def load_policy(self, file):
+        """load the parameter saved to Q network or policy network"""
+        raise NotImplementedError
+
+    def test_action(self, state):
+        """get the action in test scenario"""
         raise NotImplementedError

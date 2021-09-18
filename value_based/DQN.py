@@ -119,7 +119,7 @@ class DQN(Agent):
     def save_policy(self):
         """save the parameter of the Q network(`self.Q) when the running reward reaches `self.goal`"""
         if self._running_reward >= self.goal:
-            name = f'{self.__class__.__name__}_solve_{self.env_id}_{self._run}_{self._episode + 1}.pt'
+            name = f'{self.__class__.__name__}_solve_{self.env_id}_{self._run + 1}_{self._episode + 1}.pt'
             torch.save(self.Q.state_dict(), os.path.join(self.policy_path, name))
 
     def update_epsilon(self):
@@ -148,57 +148,12 @@ class DQN(Agent):
     def target_value(self):
         return self._rewards + self.config.get('discount_factor', 0.99) * self.next_states_value * (1 - self._dones)
 
-    def _evaluate_policy(self, file_name, episodes):
-        # set up Q network for test
-        file = os.path.join(self.policy_path, file_name)
-        self.Q = self._Q()
+    def load_policy(self, file):
         self.Q.load_state_dict(torch.load(file))
         self.Q.eval()
 
-        # define some variable to record performance
-        rewards = np.zeros(episodes)
-        running_rewards = np.zeros(episodes)
-
-        for episode in range(episodes):
-            # test for an episode
-            self.env.seed()
-            state = self.env.reset()
-            done = False
-            while not done:
-                # self.env.render()
-                # time.sleep(0.01)
-                state = torch.tensor(state).float().unsqueeze(0)
-                with torch.no_grad(): actions_value = self.Q(state)
-                action = actions_value.argmax().item()
-                next_state, reward, done, _ = self.env.step(action)
-                rewards[episode] += reward
-                state = next_state
-
-            running_rewards[episode] = np.mean(rewards[max(episode - self.window + 1, 0):episode + 1])
-            print(f'\rTesting policy {file_name}: episode: {episode + 1}, '
-                  f'reward: {rewards[episode]}, running reward: {format(running_rewards[episode], ".2f")}', end=' ')
-
-        # running rewards only make sense when the agent runs at least `self.window` episodes
-        if np.any(running_rewards[self.window - 1:] >= self.goal):
-            print(f'{Color.SUCCESS}Test Passed{Color.END}')
-        else:
-            print(f'{Color.FAIL}Test Failed{Color.END}')
-            # consider there might be a lot of policies saved
-            # you can delete a policy if it fails the test
-            # or you can comment the line below to not to delete it
-            os.remove(file)
-
-        # plot the test result of this policy
-        fig, ax = plt.subplots()
-        ax.set_xlabel('episode')
-        ax.set_ylabel('rewards')
-        name = f'{os.path.splitext(file_name)[0]} test results'  # get filename without extension
-        ax.set_title(name)
-        ax.plot(np.arange(1, episodes + 1), rewards, label='test')
-        ax.plot(np.arange(1, episodes + 1), running_rewards, label='running rewards')
-        ax.hlines(y=self.goal, xmin=1, xmax=episodes, label='goal', alpha=0.5)
-        ax.legend(loc='upper left')
-        plt.savefig(os.path.join(self.results_path, name))
-        fig.clear()
-        # todo: another way to handle multiple figures
-        plt.close('all')
+    def test_action(self, state):
+        state = torch.tensor(state).float().unsqueeze(0)
+        with torch.no_grad(): actions_value = self.Q(state)
+        action = actions_value.argmax().item()
+        return action

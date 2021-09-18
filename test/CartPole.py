@@ -78,4 +78,4 @@ if __name__ == '__main__':
     config['learning_rate_decay_rate'] = 1
     agent = REINFORCE(env, Policy, config)
     # agent.train()
-    agent.test(10)
+    agent.test()
