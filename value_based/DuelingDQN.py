@@ -15,18 +15,18 @@ class DuelingQNet(nn.Module):
         super(DuelingQNet, self).__init__()
         self.dueling = True
         self.base_layer = nn.Sequential(
-            nn.Linear(state_dim, 32),
+            nn.Linear(state_dim, 64),
             nn.ReLU(),
-            nn.Linear(32, 32),
+            nn.Linear(64, 64),
             nn.ReLU()
         )
         self.value_stream = nn.Sequential(
-            nn.Linear(32, 32),
+            nn.Linear(64, 32),
             nn.ReLU(),
             nn.Linear(32, 1),
         )
         self.advantage_stream = nn.Sequential(
-            nn.Linear(32, 32),
+            nn.Linear(64, 32),
             nn.ReLU(),
             nn.Linear(32, action_dim),
         )

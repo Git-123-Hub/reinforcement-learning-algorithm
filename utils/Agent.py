@@ -213,9 +213,9 @@ class Agent:
     def save_results(self):
         """save training data and figure after training finishes"""
         # todo: may be these plot method can be removed
-        self.plot('rewards')
+        # self.plot('rewards')
         self.plot('running_rewards')
-        self.plot('length')
+        # self.plot('length')
         self.save()
 
     def plot(self, data_name):
@@ -269,7 +269,7 @@ class Agent:
         # update learning rate in optimizer
         for p in self.optimizer.param_groups: p['lr'] = self._learning_rate
 
-    def test(self, n: int = None, *, episodes=None):
+    def test(self, n: int = None, *, episodes=None, render=False):
         """
         test the performance of the policy(or Q network) saved during training
         i.e. the parameter file saved by `self.save_policy()`
@@ -320,7 +320,8 @@ class Agent:
 
                 while not done:  # test for an episode
                     # you can uncomment the following two lines to visualize the procedure and not to fast
-                    # self.env.render()
+                    if render:
+                        env.render()
                     # time.sleep(0.01)
 
                     # get action according to the network
@@ -356,7 +357,7 @@ class Agent:
             ax.hlines(y=goal, xmin=1, xmax=episodes, label='goal', alpha=0.5)
             ax.legend(loc='upper left')
             plt.savefig(os.path.join(self.results_path, name))
-            fig.clear()
+            ax.clear()
 
         print(f'{Color.INFO}Test Finished{Color.END}')
 

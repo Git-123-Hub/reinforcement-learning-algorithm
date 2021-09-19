@@ -68,7 +68,6 @@ class REINFORCE(Agent):
         loss.backward()
         self.optimizer.step()
 
-    # todo: evaluate policy
     def save_policy(self):
         """save the parameter of the policy network(`self.policy`) when the running reward reaches `self.goal`"""
         if self._running_reward >= self.goal:
