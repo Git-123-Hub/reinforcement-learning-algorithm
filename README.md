@@ -53,3 +53,10 @@ implementation of reinforcement learning algorithm that is easy to read and unde
 
 ![Acrobot-v1](results/Acrobot-v1-offline.png)
 ![Acrobot-v1-visualize](results/Acrobot-v1.gif)
+
+# inspired by
+
+- [Deep Reinforcement Learning Algorithms with PyTorch By p-christ](
+  https://github.com/p-christ/Deep-Reinforcement-Learning-Algorithms-with-PyTorch)
+- [reinforcement learning examples of pytorch](
+  https://github.com/pytorch/examples/tree/master/reinforcement_learning)
