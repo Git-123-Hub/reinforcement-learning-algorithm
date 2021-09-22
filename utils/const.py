@@ -17,6 +17,8 @@ class Color:
     DQN = 'blue'
     DDQN = 'green'
     DDQN_PER = 'yellow'
+    REINFORCE = 'purple'
+    ActorCritic = 'black'
 
 
 def get_base_config():
