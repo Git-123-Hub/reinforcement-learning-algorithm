@@ -15,7 +15,7 @@ import numpy as np
 import torch
 
 from utils.util import setup_logger, initial_folder
-from utils.const import Color
+from utils.const import Color, DefaultGoal
 
 
 class Agent:
@@ -27,6 +27,7 @@ class Agent:
         self.env = env
         self.env_id = self.env.unwrapped.spec.id
         self.goal = self.env.spec.reward_threshold
+        if self.goal is None: self.goal = DefaultGoal[self.env_id]
 
         # get state_dim and action_dim for initializing the network
         self.state_dim = env.observation_space.shape[0]
@@ -310,9 +311,13 @@ class Agent:
             # define some variable to record performance
             rewards = np.zeros(episodes)
             running_rewards = np.zeros(episodes)
+
             # remake the env just in case that the training environment is different from the official one
+            # for example: modified with wrapper
             env = gym.make(self.env_id)
             goal = env.spec.reward_threshold
+            if goal is None: goal = DefaultGoal[self.env_id]
+
             for episode in range(episodes):  # test for given episodes
                 env.seed()
                 state = env.reset()

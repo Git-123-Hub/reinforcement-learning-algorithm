@@ -59,3 +59,12 @@ def get_base_config():
         # interval of update target_network
         'Q_update_interval': 10,  # if not specified, update every step, i.e. equals 0
     }
+
+
+# default goal for some env whose goal is None
+DefaultGoal = {
+    'Pendulum-v0': -130,
+    'Humanoid‐v3': None,
+    'HumanoidStandup‐v2': None,
+    'Walker2d‐v3': None,
+}

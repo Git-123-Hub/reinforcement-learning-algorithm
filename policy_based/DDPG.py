@@ -126,3 +126,12 @@ class DDPG(Agent):
         if self._running_reward >= self.goal:
             name = f'{self.__class__.__name__}_solve_{self.env_id}_{self._run + 1}_{self._episode + 1}.pt'
             torch.save(self.actor.state_dict(), os.path.join(self.policy_path, name))
+
+    def load_policy(self, file):
+        self.actor = self._actor(self.state_dim)
+        self.actor.load_state_dict(torch.load(file))
+        self.actor.eval()
+
+    def test_action(self, state):
+        # todo: no noise added, don't know if this is right
+        return self.actor(state).detach().squeeze(0).numpy()

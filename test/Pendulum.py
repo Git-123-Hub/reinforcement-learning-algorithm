@@ -45,29 +45,21 @@ class Critic(nn.Module):
         return self.fc(torch.cat([state, action], 1))
 
 
-# wrap the env with a specific goal
-class ModifyReward(gym.Wrapper):
-    def __init__(self, env):
-        super(ModifyReward, self).__init__(env)
-        self.env = env
-        self.env.spec.reward_threshold = -100
-
-
 if __name__ == '__main__':
-    env = ModifyReward(gym.make('Pendulum-v0'))
+    env = gym.make('Pendulum-v0')
     config = get_base_config()
     config['results'] = './Pendulum_results'
     config['policy'] = './Pendulum_policy'
-    config['seed'] = 1362364875
+    config['seed'] = 13628075
     config['run_num'] = 5
-    config['episode_num'] = 300
+    config['episode_num'] = 1000
 
     config['Q_update_interval'] = 1
-    config['tau'] = 0.01
+    config['tau'] = 0.05
 
     config['learning_rate'] = 0.001
     config['learning_rate_decay_rate'] = 1
 
     agent = DDPG(env, Actor, Critic, config)
     agent.train()
-    agent.test()
+    # agent.test()
