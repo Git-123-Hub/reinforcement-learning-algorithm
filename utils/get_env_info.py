@@ -4,17 +4,25 @@
 # @Description: get basic information about env in gym
 ############################################
 
-# get all the env in gym
-# from gym import envs
-# print(envs.registry.all())
+from gym import envs
 from pprint import pprint
 
 import gym
 
-envs = ['CartPole-v1', 'MountainCarContinuous-v0',
-        'LunarLander-v2', 'Acrobot-v1', 'MountainCar-v0', 'Pendulum-v0']
+# get all the env in gym
+# print(envs.registry.all())
+
+env_list = [
+    # classic control
+    'Acrobot-v1', 'CartPole-v1', 'MountainCar-v0', 'MountainCarContinuous-v0', 'Pendulum-v0',
+    # box2D
+    'BipedalWalker-v3', 'CarRacing-v0', 'BipedalWalkerHardcore-v3',
+    'LunarLander-v2', 'LunarLanderContinuous-v2',
+    # mujoco
+    'Ant-v3', 'HalfCheetah-v3', 'Hopper-v3', 'Humanoid-v3', 'HumanoidStandup-v2',
+    'InvertedDoublePendulum-v2', 'InvertedPendulum-v2', 'Reacher-v2', 'Swimmer-v3', 'Walker2d-v3']
 info = {}
-for env_name in envs:
+for env_name in env_list:
     env = gym.make(env_name)
     _info = {}
     actionSpaceName = env.action_space.__class__.__name__

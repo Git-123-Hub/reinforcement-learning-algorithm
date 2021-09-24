@@ -40,11 +40,8 @@ class Critic(nn.Module):
     def forward(self, state, action):
         if isinstance(state, np.ndarray):
             state = torch.tensor(state).float().unsqueeze(0)
-
         if isinstance(action, np.ndarray):
             action = torch.tensor(action).float().unsqueeze(0)
-
-        # todo: check data dimension, this method might be wrong
         return self.fc(torch.cat([state, action], 1))
 
 
@@ -59,6 +56,18 @@ class ModifyReward(gym.Wrapper):
 if __name__ == '__main__':
     env = ModifyReward(gym.make('Pendulum-v0'))
     config = get_base_config()
+    config['results'] = './Pendulum_results'
+    config['policy'] = './Pendulum_policy'
+    config['seed'] = 1362364875
+    config['run_num'] = 5
+    config['episode_num'] = 300
+
+    config['Q_update_interval'] = 1
+    config['tau'] = 0.01
+
+    config['learning_rate'] = 0.001
+    config['learning_rate_decay_rate'] = 1
 
     agent = DDPG(env, Actor, Critic, config)
     agent.train()
+    agent.test()

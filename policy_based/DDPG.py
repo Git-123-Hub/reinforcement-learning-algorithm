@@ -44,34 +44,31 @@ class DDPG(Agent):
 
     def run_an_episode(self):
         while not self.done:
-            self.length[self._run][self._episode] += 1
             self.select_action()
 
             # execute action
             self.next_state, self.reward, self.done, _ = self.env.step(self.action)
-            self.env.render()
+            # self.env.render()
 
+            self.length[self._run][self._episode] += 1
             self.rewards[self._run][self._episode] += self.reward
 
             # save experience
             experience = (self.state, self.action, self.reward, self.next_state, self.done)
             self.replayMemory.add(experience)
 
-            # only start to learn when there are enough experiences to sample from
             self.learn()
 
             self.state = self.next_state
 
-        print(f'\r{format(self._episode + 1, ">3")}th episode: '
-              f'{format(self.length[self._run][self._episode], ">3")} steps, '
+        print(f'\repisode: {format(self._episode + 1, ">3")}, '
+              f'steps: {format(self.length[self._run][self._episode], ">3")}, '
               f'rewards: {format(self.rewards[self._run][self._episode], ">5.1f")}, '
               f'running reward: {format(self._running_reward, ">7.3f")}', end='')
 
     def select_action(self):
         self.actor.eval()
-        with torch.no_grad():
-            # todo: check data dimension
-            self.action = self.actor(self.state).squeeze(0).numpy()
+        self.action = self.actor(self.state).detach().squeeze(0).numpy()
         self.actor.train()
 
         noise = np.random.normal(0, 1)
@@ -81,12 +78,10 @@ class DDPG(Agent):
     def learn(self):
         if self.replayMemory.ready:
             self._states, self._actions, self._rewards, self._next_states, self._dones = self.replayMemory.sample()
-            loss = F.mse_loss(self.current_state_action_value, self.target_value)
-            self.logger.info(f'loss: {loss.item()}')
 
             # update critic
             self.critic_optimizer.zero_grad()
-            loss = F.mse_loss(self.current_state_action_value, self.target_value)
+            loss = F.mse_loss(self.current_state_action_value, self.target_value, reduction='mean')
             loss.backward()
             self.critic_optimizer.step()
 
@@ -94,7 +89,7 @@ class DDPG(Agent):
             self.actor_optimizer.zero_grad()
             # note these actions are not sampled, but get from actor
             actions = self.actor(self._states)
-            loss = self.critic(self._states, actions)
+            loss = -self.critic(self._states, actions)  # node the negative
             loss.mean().backward()
             self.actor_optimizer.step()
 
@@ -102,12 +97,15 @@ class DDPG(Agent):
 
     @property
     def current_state_action_value(self):
-        return self.critic(self._states, self._actions)
+        self.critic.eval()
+        value = self.critic(self._states, self._actions)
+        self.critic.train()
+        return value
 
     @property
     def next_state_action_value(self):
         # get next action using target_actor
-        next_action = self.target_actor(self._next_states).squeeze(0)
+        next_action = self.target_actor(self._next_states).detach()
         return self.target_critic(self._next_states, next_action).detach()
 
     @property
