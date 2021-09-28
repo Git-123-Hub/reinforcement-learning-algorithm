@@ -57,13 +57,13 @@ def get_base_config():
         'tau': 0.2,  # parameter for network soft-update
 
         # interval of update target_network
-        'Q_update_interval': 10,  # if not specified, update every step, i.e. equals 0
+        'Q_update_interval': 10,  # if not specified, update every step, i.e. equals 1
     }
 
 
 # default goal for some env whose goal is None
 DefaultGoal = {
-    'Pendulum-v0': -130,
+    'Pendulum-v0': -100,
     'Humanoid‐v3': None,
     'HumanoidStandup‐v2': None,
     'Walker2d‐v3': None,

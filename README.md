@@ -12,8 +12,10 @@ implementation of reinforcement learning algorithm that is easy to read and unde
 - Dueling DQN
   [Dueling Network Architectures for Deep Reinforcement Learning](https://arxiv.org/abs/1511.06581)
 - DDQN with prioritized experience replay
-  [PRIORITIZED EXPERIENCE REPLAY](https://arxiv.org/abs/1511.05952)
+  [Prioritized Experience Replay](https://arxiv.org/abs/1511.05952)
 - REINFORCE(Monte-Carlo Policy Gradient)
+- DDPG
+  [Continuous control with deep reinforcement learning](https://arxiv.org/abs/1509.02971)
 
 # online result
 
@@ -30,6 +32,10 @@ implementation of reinforcement learning algorithm that is easy to read and unde
 ### Acrobot-v1
 
 ![Acrobot-v1](results/Acrobot-v1-online.png)
+
+### Pendulum-v0
+
+![Pendulum-v0](results/Pendulum-v0-online.png)
 
 # offline result
 

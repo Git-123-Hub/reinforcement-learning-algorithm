@@ -110,7 +110,7 @@ class DQN(Agent):
 
     def update_target_Q(self):
         """update target Q network if exist"""
-        if self.length[self._run].sum() % self.config.get('Q_update_interval', 0) == 0:
+        if self.length[self._run].sum() % self.config.get('Q_update_interval', 1) == 0:
             if 'tau' in self.config:
                 soft_update(self.Q, self.target_Q, self.config.get('tau'))
             else:

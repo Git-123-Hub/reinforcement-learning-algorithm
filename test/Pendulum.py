@@ -16,9 +16,11 @@ class Actor(nn.Module):
     def __init__(self, state_dim):
         super(Actor, self).__init__()
         self.fc = nn.Sequential(
-            nn.Linear(state_dim, 64),
+            nn.Linear(state_dim, 500),
             nn.ReLU(),
-            nn.Linear(64, 1),
+            nn.Linear(500, 1000),
+            nn.ReLU(),
+            nn.Linear(1000, 1),
         )
 
     def forward(self, state):
@@ -32,9 +34,11 @@ class Critic(nn.Module):
     def __init__(self, state_dim, action_dim):
         super(Critic, self).__init__()
         self.fc = nn.Sequential(
-            nn.Linear(state_dim + action_dim, 128),
+            nn.Linear(state_dim + action_dim, 500),
             nn.ReLU(),
-            nn.Linear(128, 1)
+            nn.Linear(500, 1000),
+            nn.ReLU(),
+            nn.Linear(1000, 1)
         )
 
     def forward(self, state, action):
@@ -50,14 +54,17 @@ if __name__ == '__main__':
     config = get_base_config()
     config['results'] = './Pendulum_results'
     config['policy'] = './Pendulum_policy'
-    config['seed'] = 13628075
+    # config['seed'] = 1030875
     config['run_num'] = 5
-    config['episode_num'] = 1000
+    config['episode_num'] = 300
+
+    config['memory_capacity'] = 10000
+    config['batch_size'] = 64
 
     config['Q_update_interval'] = 1
-    config['tau'] = 0.05
+    config['tau'] = 0.01
 
-    config['learning_rate'] = 0.001
+    config['learning_rate'] = 0.0005
     config['learning_rate_decay_rate'] = 1
 
     agent = DDPG(env, Actor, Critic, config)

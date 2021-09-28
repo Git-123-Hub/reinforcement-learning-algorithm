@@ -14,7 +14,7 @@ import gym
 
 env_list = [
     # classic control
-    'Acrobot-v1', 'CartPole-v1', 'MountainCar-v0', 'MountainCarContinuous-v0', 'Pendulum-v0',
+    'CartPole-v1', 'Acrobot-v1', 'MountainCar-v0', 'MountainCarContinuous-v0', 'Pendulum-v0',
     # box2D
     'BipedalWalker-v3', 'CarRacing-v0', 'BipedalWalkerHardcore-v3',
     'LunarLander-v2', 'LunarLanderContinuous-v2',
@@ -43,4 +43,4 @@ for env_name in env_list:
     _info['state_dim'] = state_dim
     info[env_name] = _info
 
-pprint(info)
+pprint(info, sort_dicts=False)

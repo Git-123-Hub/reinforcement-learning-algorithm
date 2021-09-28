@@ -3,13 +3,15 @@
 # @Date: 2021/9/23
 # @Description: implementation of DDPG(Deep Deterministic Policy Gradient)
 ############################################
+import copy
 import os
+import random
 from copy import deepcopy
 
 import numpy as np
 import torch
-from torch import optim
 import torch.nn.functional as F
+from torch import optim
 
 from utils.Agent import Agent
 from utils.replayMemory import replayMemory
@@ -27,8 +29,6 @@ class DDPG(Agent):
         self.critic, self.target_critic, self.critic_optimizer = None, None, None
 
         self.replayMemory = replayMemory(self.config.get('memory_capacity', 20000), self.config.get('batch_size', 256))
-
-        # todo: maybe need a random process
 
     def run_reset(self):
         super(DDPG, self).run_reset()
@@ -76,24 +76,25 @@ class DDPG(Agent):
         self.action += noise  # gym environment will do the clip on action
 
     def learn(self):
-        if self.replayMemory.ready:
-            self._states, self._actions, self._rewards, self._next_states, self._dones = self.replayMemory.sample()
+        if not self.replayMemory.ready:
+            return
+        self._states, self._actions, self._rewards, self._next_states, self._dones = self.replayMemory.sample()
 
-            # update critic
-            self.critic_optimizer.zero_grad()
-            loss = F.mse_loss(self.current_state_action_value, self.target_value, reduction='mean')
-            loss.backward()
-            self.critic_optimizer.step()
+        # update critic
+        self.critic_optimizer.zero_grad()
+        loss = F.mse_loss(self.current_state_action_value, self.target_value, reduction='mean')
+        loss.backward()
+        self.critic_optimizer.step()
 
-            # update actor using the critic value of sampled states
-            self.actor_optimizer.zero_grad()
-            # note these actions are not sampled, but get from actor
-            actions = self.actor(self._states)
-            loss = -self.critic(self._states, actions)  # node the negative
-            loss.mean().backward()
-            self.actor_optimizer.step()
+        # update actor using the critic value of sampled states
+        self.actor_optimizer.zero_grad()
+        # note these actions are not sampled, but get from actor
+        actions = self.actor(self._states)
+        loss = -self.critic(self._states, actions)  # node the negative sign
+        loss.mean().backward()
+        self.actor_optimizer.step()
 
-            self.update_target_network()
+        self.update_target_network()
 
     @property
     def current_state_action_value(self):
@@ -110,11 +111,11 @@ class DDPG(Agent):
 
     @property
     def target_value(self):
-        return self._rewards + self.config.get('discount_factor', 0.99) * self.next_state_action_value * (
-                    1 - self._dones)
+        return self._rewards + self.config.get(
+            'discount_factor', 0.99) * self.next_state_action_value * (1 - self._dones)
 
     def update_target_network(self):
-        if self.length[self._run].sum() % self.config.get('Q_update_interval', 0) == 0:  # time to update
+        if self.length[self._run].sum() % self.config.get('Q_update_interval', 1) == 0:  # time to update
             if 'tau' in self.config:  # soft update
                 soft_update(self.actor, self.target_actor, self.config.get('tau', 0.01))
                 soft_update(self.critic, self.target_critic, self.config.get('tau', 0.01))
