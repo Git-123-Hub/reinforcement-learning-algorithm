@@ -58,6 +58,12 @@ def get_base_config():
 
         # interval of update target_network
         'Q_update_interval': 10,  # if not specified, update every step, i.e. equals 1
+
+        # ##### parameters for TD3 ##### #
+        # specify mean and std for normal distribution noise
+        'noise_mean': 0,
+        'noise_std': 1,  # note that this value will be multiplied with max action of the env
+        'noise_clip': 1,  # this value will also be multiplied with max action and min action
     }
 
 

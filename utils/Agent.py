@@ -268,7 +268,7 @@ class Agent:
             self._learning_rate = max(self._learning_rate, min_lr)
 
         # update learning rate in optimizer
-        for p in self.optimizer.param_groups: p['lr'] = self._learning_rate
+        # for p in self.optimizer.param_groups: p['lr'] = self._learning_rate
 
     def test(self, n: int = None, *, episodes=None, render=False):
         """

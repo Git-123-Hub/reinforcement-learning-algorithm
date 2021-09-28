@@ -16,7 +16,8 @@ implementation of reinforcement learning algorithm that is easy to read and unde
 - REINFORCE(Monte-Carlo Policy Gradient)
 - DDPG
   [Continuous control with deep reinforcement learning](https://arxiv.org/abs/1509.02971)
-
+- TD3
+  [Addressing Function Approximation Error in Actor-Critic Methods](https://arxiv.org/abs/1802.09477)
 # online result
 
 > training result of the agent trying to solve a problem from a scratch
