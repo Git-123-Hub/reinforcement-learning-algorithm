@@ -8,8 +8,7 @@ import numpy as np
 import torch
 from torch import nn
 
-from policy_based.DDPG import DDPG
-from policy_based.TD3 import TD3
+from policy_based import DDPG, TD3
 from utils.const import get_base_config
 
 

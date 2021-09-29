@@ -3,8 +3,8 @@
 # @Date: 2021/9/8
 # @Description: implementation of Double Deep Q-Learning with prioritized experience replay
 ############################################
-from utils.prioritizedMemory import prioritizedMemory
-from value_based.DDQN import DDQN
+from utils import prioritizedMemory
+from value_based import DDQN
 import torch.nn.functional as F
 import torch
 

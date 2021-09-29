@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from utils.prioritizedMemory import prioritizedMemory
+from utils import prioritizedMemory
 
 capacity, batch_size, alpha, beta = 10, 3, 0.5, 0.5
 

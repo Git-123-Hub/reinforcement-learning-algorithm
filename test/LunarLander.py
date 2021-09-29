@@ -7,13 +7,10 @@ import gym
 from torch import nn
 from torch.distributions import Categorical
 
-from policy_based.REINFORCE import REINFORCE
+from policy_based import REINFORCE
 from utils.const import get_base_config
 from utils.util import compare
-from value_based.DDQN import DDQN
-from value_based.DDQN_PER import DDQN_PER
-from value_based.DQN import DQN
-from value_based.DuelingDQN import DuelingQNet
+from value_based import DDQN, DDQN_PER, DQN, DuelingQNet
 
 
 class QNet(nn.Module):

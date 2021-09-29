@@ -8,11 +8,10 @@ from copy import deepcopy
 
 import numpy as np
 import torch
-from torch import optim
 import torch.nn.functional as F
+from torch import optim
 
-from utils.Agent import Agent
-from utils.replayMemory import replayMemory
+from utils import Agent, replayMemory
 from utils.util import soft_update
 
 

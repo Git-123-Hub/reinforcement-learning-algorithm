@@ -13,8 +13,7 @@ import torch
 import torch.nn.functional as F
 from torch import optim
 
-from utils.Agent import Agent
-from utils.replayMemory import replayMemory
+from utils import Agent, replayMemory
 from utils.util import soft_update
 
 
