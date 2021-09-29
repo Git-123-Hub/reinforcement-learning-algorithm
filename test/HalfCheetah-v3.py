@@ -59,20 +59,27 @@ if __name__ == '__main__':
     config = get_base_config()
     config['results'] = './HalfCheetah_results'
     config['policy'] = './HalfCheetah_policy'
-    # config['seed'] = 470763
-    config['run_num'] = 5
-    config['episode_num'] = 1000
+    config['seed'] = 482307631
+    config['run_num'] = 1
+    config['episode_num'] = 500
+
+    config['memory_capacity'] = 1e5
+    config['batch_size'] = 256
 
     config['Q_update_interval'] = 1
-    config['tau'] = 0.01
+    config['tau'] = 0.005
 
-    config['learning_rate'] = 0.001
+    config['learning_rate'] = 3e-4
     config['learning_rate_decay_rate'] = 1
 
     # agent = DDPG(env, Actor, Critic, config)
     # agent.train()
     # agent.test()
 
-    config['update_interval'] = 4
+    config['update_interval'] = 2
+    config['noise_std'] = 1
+    config['noise_clip'] = 0.5
+    config['noise_factor'] = 0.2
     agent = TD3(env, Actor, Critic, config)
     agent.train()
+    # agent.test(render=True)

@@ -18,6 +18,7 @@ from utils.util import soft_update
 
 class TD3(Agent):
     def __init__(self, env, actor, critic, config):
+        # todo: TD3 might use two different critic
         super(TD3, self).__init__(env, config)
         # initial actor
         self._actor = actor
@@ -82,10 +83,12 @@ class TD3(Agent):
         self.action += self.get_action_noise(self.action.size)
 
     def get_action_noise(self, size):
+        # todo: maybe two different way of getting noise
         noise_mean = self.config.get('noise_mean', 0)
         noise_std = self.config.get('noise_std', 1) * self.max_action
         noise_clip = self.config.get('noise_clip', 1)
-        noise = np.random.normal(noise_mean, noise_std, size=size) * 0.2
+        noise_factor = self.config.get('noise_factor', 0.2) * self.max_action
+        noise = np.random.normal(noise_mean, noise_std, size=size) * noise_factor
         return np.clip(noise, noise_clip * self.min_action, noise_clip * self.max_action)
 
     def learn(self):
@@ -97,7 +100,7 @@ class TD3(Agent):
         next_actions = self.target_actor(self._next_states)
         next_actions += torch.tensor(self.get_action_noise(next_actions.size()))
         # we should clip the action here, because these actions are not passed into the env
-        next_actions.clip(self.min_action, self.max_action)
+        next_actions.clip_(self.min_action, self.max_action)
 
         # calculate target value
         target_critic1_value = self.target_critic1(self._next_states, next_actions)
@@ -143,3 +146,12 @@ class TD3(Agent):
         if self._running_reward >= self.goal:
             name = f'{self.__class__.__name__}_solve_{self.env_id}_{self._run + 1}_{self._episode + 1}.pt'
             torch.save(self.actor.state_dict(), os.path.join(self.policy_path, name))
+
+    def load_policy(self, file):
+        self.actor = self._actor(self.state_dim, self.action_dim)
+        self.actor.load_state_dict(torch.load(file))
+        self.actor.eval()
+
+    def test_action(self, state):
+        # no noise added
+        return self.actor(state).detach().squeeze(0).numpy()

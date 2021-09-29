@@ -12,10 +12,10 @@ class replayMemory:
     """data structure where we store the agent's experience, and sample them for the agent to learn"""
 
     def __init__(self, capacity, batch_size):
-        assert capacity > batch_size, 'capacity should be greater than batch size'
-        self.capacity = capacity
+        assert int(capacity) > batch_size, 'capacity should be greater than batch size'
+        self.capacity = int(capacity)
         self.batch_size = batch_size
-        self.memory = np.zeros(capacity, dtype=object)  # len(self.memory) equals the capacity
+        self.memory = np.zeros(int(capacity), dtype=object)  # len(self.memory) equals the capacity
         self._index = 0  # current position for adding new experience
         self._size = 0  # record the number of the all the experiences stored
 

@@ -38,6 +38,10 @@ implementation of reinforcement learning algorithm that is easy to read and unde
 
 ![Pendulum-v0](results/Pendulum-v0-online.png)
 
+### HalfCheetah-v3
+
+![HalfCheetah-v3](results/HalfCheetah-v3-online.png)
+
 # offline result
 
 > online training is not always stable<br>
@@ -59,3 +63,13 @@ implementation of reinforcement learning algorithm that is easy to read and unde
 
 ![Acrobot-v1](results/Acrobot-v1-offline.png)
 ![Acrobot-v1-visualize](results/Acrobot-v1.gif)
+
+### Pendulum-v0
+
+[comment]: <> (![Pendulum-v0]&#40;results/Acrobot-v1-offline.png&#41;)
+![Pendulum-v0-visualize](results/Pendulum-v0.gif)
+
+### HalfCheetah-v3
+
+![HalfCheetah-v3](results/HalfCheetah-v3-offline.png)
+![HalfCheetah-v3-visualize](results/HalfCheetah-v3.gif)
