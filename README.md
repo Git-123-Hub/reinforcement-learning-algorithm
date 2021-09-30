@@ -17,6 +17,8 @@ implementation of reinforcement learning algorithm that is easy to read and unde
 - ActorCritic
 - DDPG
   [Continuous control with deep reinforcement learning](https://arxiv.org/abs/1509.02971)
+- TD3
+  [Addressing Function Approximation Error in Actor-Critic Methods](https://arxiv.org/abs/1802.09477)
 
 # online result
 
@@ -25,6 +27,10 @@ implementation of reinforcement learning algorithm that is easy to read and unde
 ### CartPole-v1
 
 ![CartPole-v1](results/CartPole-v1-online.png)
+
+### MountainCar-v0
+
+![MountainCar-v0](results/MountainCar-v0-online.png)
 
 ### LunarLander-v2
 
@@ -38,6 +44,10 @@ implementation of reinforcement learning algorithm that is easy to read and unde
 
 ![Pendulum-v0](results/Pendulum-v0-online.png)
 
+### HalfCheetah-v3
+
+![HalfCheetah-v3](results/HalfCheetah-v3-online.png)
+
 # offline result
 
 > online training is not always stable<br>
@@ -50,6 +60,11 @@ implementation of reinforcement learning algorithm that is easy to read and unde
 ![CartPole-v1](results/CartPole-v1-offline.png)
 ![CartPole-v1-visualize](results/CartPole-v1.gif)
 
+### MountainCar-v0
+
+![MountainCar-v0](results/MountainCar-v0-offline.png)
+![MountainCar-v0-visualize](results/MountainCar-v0.gif)
+
 ### LunarLander-v2
 
 ![LunarLander-v2](results/LunarLander-v2-offline.png)
@@ -59,6 +74,16 @@ implementation of reinforcement learning algorithm that is easy to read and unde
 
 ![Acrobot-v1](results/Acrobot-v1-offline.png)
 ![Acrobot-v1-visualize](results/Acrobot-v1.gif)
+
+### Pendulum-v0
+
+[comment]: <> (![Pendulum-v0]&#40;results/Acrobot-v1-offline.png&#41;)
+![Pendulum-v0-visualize](results/Pendulum-v0.gif)
+
+### HalfCheetah-v3
+
+![HalfCheetah-v3](results/HalfCheetah-v3-offline.png)
+![HalfCheetah-v3-visualize](results/HalfCheetah-v3.gif)
 
 # inspired by
 

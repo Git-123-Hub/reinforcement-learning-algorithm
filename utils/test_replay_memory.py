@@ -1,6 +1,6 @@
 import unittest
 
-from utils.replayMemory import replayMemory
+from utils import replayMemory
 
 capacity, batch_size = 10, 4
 

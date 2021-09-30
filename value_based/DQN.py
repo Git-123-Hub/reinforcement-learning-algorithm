@@ -15,9 +15,8 @@ import torch
 import torch.nn.functional as F
 from torch import optim
 
-from utils.Agent import Agent
-from utils.replayMemory import replayMemory
-from utils.util import Color
+from utils import replayMemory, Agent
+from utils.const import Color
 from utils.util import soft_update
 
 
@@ -69,12 +68,11 @@ class DQN(Agent):
                 self.learn()
 
             self.state = self.next_state
-        print(f'\r{format(self._episode + 1, ">3")}th episode: '
-              f'{format(self.length[self._run][self._episode], ">3")} steps, '
-              f'rewards: {format(self.rewards[self._run][self._episode], ">5.1f")}, '
-              f'running reward: {format(self._running_reward, ">7.3f")}, '
-              f'learning rate: {format(self._learning_rate, ">5")}, '
-              f'epsilon: {format(self._epsilon, ".4f")}', end='')
+        print(f'\r{self._episode + 1: >3}th episode: '
+              f'{self.length[self._run][self._episode]: >3} steps, '
+              f'rewards: {self.rewards[self._run][self._episode]: >5.1f}, '
+              f'running reward: {self._running_reward: >7.3f}, '
+              f'epsilon: {self._epsilon: .4f}', end='')
 
     def select_action(self):
         """select action according to `self.Q` given current state"""

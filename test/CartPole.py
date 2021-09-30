@@ -10,14 +10,10 @@ import torch
 import torch.nn as nn
 from torch.distributions import Categorical
 
-from policy_based.ActorCritic import ActorCritic
-from policy_based.REINFORCE import REINFORCE
+from policy_based import REINFORCE
 from utils.const import get_base_config
 from utils.util import compare
-from value_based.DDQN import DDQN
-from value_based.DDQN_PER import DDQN_PER
-from value_based.DQN import DQN
-from value_based.DuelingDQN import DuelingQNet
+from value_based import DDQN, DDQN_PER, DQN, DuelingQNet
 
 
 class QNet(nn.Module):
@@ -46,9 +42,9 @@ class Policy(nn.Module):
         # input state size, output probability on each action
         self.fc = nn.Sequential(
             nn.Linear(state_dim, 128),
-            nn.ReLU(),
+            nn.Dropout(p=0.6),
             nn.Linear(128, action_dim),
-            # nn.ReLU(),
+            nn.ReLU(),
             nn.Softmax(dim=1)
         )
 
@@ -89,6 +85,9 @@ if __name__ == '__main__':
     config['seed'] = 7511267
     config['run_num'] = 5
     config['episode_num'] = 1000
+    config['min_epsilon'] = 0.001
+    config['Q_update_interval'] = 20
+    config['tau'] = 0.3
 
     config['learning_rate'] = 0.001
     config['learning_rate_decay_rate'] = 1

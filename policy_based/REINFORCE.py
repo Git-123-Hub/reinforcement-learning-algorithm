@@ -11,7 +11,7 @@ import torch
 from torch import optim
 import matplotlib.pyplot as plt
 
-from utils.Agent import Agent
+from utils import Agent
 from utils.const import Color
 
 
