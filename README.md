@@ -18,6 +18,7 @@ implementation of reinforcement learning algorithm that is easy to read and unde
   [Continuous control with deep reinforcement learning](https://arxiv.org/abs/1509.02971)
 - TD3
   [Addressing Function Approximation Error in Actor-Critic Methods](https://arxiv.org/abs/1802.09477)
+
 # online result
 
 > training result of the agent trying to solve a problem from a scratch
@@ -25,6 +26,10 @@ implementation of reinforcement learning algorithm that is easy to read and unde
 ### CartPole-v1
 
 ![CartPole-v1](results/CartPole-v1-online.png)
+
+### MountainCar-v0
+
+![MountainCar-v0](results/MountainCar-v0-online.png)
 
 ### LunarLander-v2
 
@@ -53,6 +58,11 @@ implementation of reinforcement learning algorithm that is easy to read and unde
 
 ![CartPole-v1](results/CartPole-v1-offline.png)
 ![CartPole-v1-visualize](results/CartPole-v1.gif)
+
+### MountainCar-v0
+
+![MountainCar-v0](results/MountainCar-v0-offline.png)
+![MountainCar-v0-visualize](results/MountainCar-v0.gif)
 
 ### LunarLander-v2
 

@@ -340,7 +340,7 @@ class Agent:
                 running_rewards[episode] = np.mean(rewards[max(episode - self.window + 1, 0):episode + 1])
                 print(f'\rTesting policy {file_name}: episode: {episode + 1}, '
                       f'reward: {rewards[episode]}, '
-                      f'running reward: {format(running_rewards[episode], ".2f")}', end=' ')
+                      f'running reward: {running_rewards[episode]: .2f}', end=' ')
 
             # evaluate the performance of the testing
             # running rewards only make sense when the agent runs at least `self.window` episodes
