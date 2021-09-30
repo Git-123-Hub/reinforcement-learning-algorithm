@@ -29,6 +29,8 @@ implementation of reinforcement learning algorithm that is easy to read and unde
 ![CartPole-v1](results/CartPole-v1-online.png)
 
 ### MountainCar-v0
+> the original environment is hard to converge, <br>
+> so I modify the reward to solve this problem and get the result below
 
 ![MountainCar-v0](results/MountainCar-v0-online.png)
 
@@ -62,6 +64,10 @@ implementation of reinforcement learning algorithm that is easy to read and unde
 
 ### MountainCar-v0
 
+> though training on a modified environment, <br>
+> I still use the original one to test the policy, <br>
+> thus illustrate the result the learning
+
 ![MountainCar-v0](results/MountainCar-v0-offline.png)
 ![MountainCar-v0-visualize](results/MountainCar-v0.gif)
 
@@ -91,3 +97,4 @@ implementation of reinforcement learning algorithm that is easy to read and unde
   https://github.com/p-christ/Deep-Reinforcement-Learning-Algorithms-with-PyTorch)
 - [reinforcement learning examples of pytorch](
   https://github.com/pytorch/examples/tree/master/reinforcement_learning)
+- [Author's PyTorch implementation of TD3](https://github.com/sfujim/TD3)

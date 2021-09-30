@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 from torch.distributions import Categorical
 
-from policy_based import REINFORCE
+from policy_based import REINFORCE, ActorCritic
 from utils.const import get_base_config
 from utils.util import compare
 from value_based import DDQN, DDQN_PER, DQN, DuelingQNet

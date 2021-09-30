@@ -68,10 +68,10 @@ class TD3(Agent):
 
             self.state = self.next_state
 
-        print(f'\repisode: {format(self._episode + 1, ">3")}, '
-              f'steps: {format(self.length[self._run][self._episode], ">3")}, '
-              f'rewards: {format(self.rewards[self._run][self._episode], ">5.1f")}, '
-              f'running reward: {format(self._running_reward, ">7.3f")}', end='')
+        print(f'\repisode: {self._episode + 1: >3}, '
+              f'steps: {self.length[self._run][self._episode]: >3}, '
+              f'rewards: {self.rewards[self._run][self._episode]: >5.1f}, '
+              f'running reward: {self._running_reward: >7.3f}', end='')
 
     def select_action(self):
         self.actor.eval()

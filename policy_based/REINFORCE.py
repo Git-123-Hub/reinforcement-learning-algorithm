@@ -46,11 +46,11 @@ class REINFORCE(Agent):
 
         self.learn(episode_reward, episode_log_prob)  # learn when an episode finishes
 
-        print(f'\r{format(self._episode + 1, ">4")}th episode: '
-              f'{format(self.length[self._run][self._episode], ">3")} steps, '
-              f'rewards: {format(self.rewards[self._run][self._episode], ">7.2f")}, '
-              f'running reward: {format(self._running_reward, ">7.2f")}, '
-              f'learning rate: {format(self._learning_rate, ">7.6f")}, ', end='')
+        print(f'\r{self._episode + 1: >4}th episode: '
+              f'{self.length[self._run][self._episode]: >3} steps, '
+              f'rewards: {self.rewards[self._run][self._episode]: >7.2f}, '
+              f'running reward: {self._running_reward: >7.2f}, '
+              f'learning rate: {self._learning_rate: >7.6f}, ', end='')
 
     def learn(self, reward_list, log_prob_list):
         returns = np.zeros_like(reward_list)

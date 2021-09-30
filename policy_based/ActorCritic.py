@@ -56,10 +56,10 @@ class ActorCritic(Agent):
 
             self.state = self.next_state
 
-        print(f'\r{format(self._episode + 1, ">3")}th episode: '
-              f'{format(self.length[self._run][self._episode], ">3")} steps, '
-              f'rewards: {format(self.rewards[self._run][self._episode], ">5.1f")}, '
-              f'running reward: {format(self._running_reward, ">7.3f")}, ', end='')
+        print(f'\r{self._episode + 1: >3}th episode: '
+              f'{self.length[self._run][self._episode]: >3} steps, '
+              f'rewards: {self.rewards[self._run][self._episode]: >5.1f}, '
+              f'running reward: {self._running_reward: >7.3f}, ', end='')
 
     def learn(self, reward_list, log_prob_list, state_value_list):
         if self.done:  # learn after this episode finishes
