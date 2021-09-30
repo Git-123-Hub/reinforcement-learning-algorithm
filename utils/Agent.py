@@ -181,7 +181,7 @@ class Agent:
             # calculate running time and total steps of this run
             self._time = time.time() - self._time
             print(f'time taken: {str(datetime.timedelta(seconds=int(self._time)))}, '
-                  f'total steps: {self.length.sum()}{Color.END}')
+                  f'total steps: {self.length[self._run].sum()}{Color.END}')
 
         self.save_results()
         print(f'{Color.INFO}Training Finished.{Color.END}\n')
@@ -256,6 +256,9 @@ class Agent:
         update learning rate of optimizer according to last episode's reward,
         as the reward get closer to `self.goal`, learning rate should become lower
         """
+        if self.optimizer is None:
+            return
+
         start_lr = self.config['learning_rate']
         min_lr = self.config.get('min_learning_rate', 0.0001)
         if self._episode == 0:  # first episode of new run, reset learning rate
