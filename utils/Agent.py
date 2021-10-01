@@ -169,15 +169,16 @@ class Agent:
 
             self.plot_run_result()
 
-            # print info about this episode's training
+            # print info about this run's training
             # determine whether the agent has solved the problem
             episode = np.argmax(self.running_rewards[self._run] >= self.goal)
             # use np.argmax because it stops at the first True(more efficient)
             # but it might return 0 if no there is no True, so another condition is needed
             if episode > 0 or (episode == 0 and self.running_rewards[self._run][0] >= self.goal):
-                print(f'\n{Color.SUCCESS}Problem solved on episode {episode + 1}, ', end=' ')
+                print(f'\n{Color.SUCCESS}Problem solved on episode {episode + 1}, ', end='')
             else:
-                print(f'\n{Color.FAIL}Problem NOT solved, ', end=' ')
+                print(f'\n{Color.FAIL}Problem NOT solved, ', end='')
+
             # calculate running time and total steps of this run
             self._time = time.time() - self._time
             print(f'time taken: {str(datetime.timedelta(seconds=int(self._time)))}, '
@@ -202,10 +203,10 @@ class Agent:
         ax.set_xlabel('episode')
         ax.set_ylabel('reward')
         x = np.arange(1, self.episode_num + 1)
-        ax.plot(x, self.rewards[self._run], label='reward')
-        ax.plot(x, self.running_rewards[self._run], label='running reward')
-        ax.hlines(y=self.goal, xmin=1, xmax=self.episode_num, colors='red', label='goal')
-        ax.legend(loc='upper left')
+        ax.plot(x, self.rewards[self._run], label='reward', color=Color.REWARD)
+        ax.plot(x, self.running_rewards[self._run], label='running reward', color=Color.RUNNING_REWARD)
+        ax.hlines(y=self.goal, xmin=1, xmax=self.episode_num, label='goal', colors=Color.GOAL)
+        ax.legend(loc='lower right')
         name = f'result of {self.__class__.__name__} solving {self.env_id}({self._run + 1}th run)'
         ax.set_title(name)
         plt.savefig(os.path.join(self.results_path, name))
@@ -358,12 +359,13 @@ class Agent:
 
             ax.set_xlabel('episode')
             ax.set_ylabel('rewards')
+            x = np.arange(1, episodes + 1)
+            ax.plot(x, rewards, label='test', color=Color.TEST)
+            ax.plot(x, running_rewards, label='running rewards', color=Color.RUNNING_REWARD)
+            ax.hlines(y=goal, xmin=1, xmax=episodes, label='goal', color=Color.GOAL)
+            ax.legend(loc='lower right')
             name = f'{os.path.splitext(file_name)[0]} test results'  # get filename without extension
             ax.set_title(name)
-            ax.plot(np.arange(1, episodes + 1), rewards, label='test')
-            ax.plot(np.arange(1, episodes + 1), running_rewards, label='running rewards')
-            ax.hlines(y=goal, xmin=1, xmax=episodes, label='goal', alpha=0.5)
-            ax.legend(loc='upper left')
             plt.savefig(os.path.join(self.results_path, name))
             ax.clear()
 

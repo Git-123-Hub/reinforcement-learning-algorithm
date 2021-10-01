@@ -4,21 +4,49 @@
 # @Description: some constants used in the program
 ############################################
 
+import matplotlib.pyplot as plt
+
+
 class Color:
     """color used for printing and plotting"""
-    # color for print
+    # color for print to console
     END = '\033[0m'
     SUCCESS = '\033[94m'
     FAIL = '\033[91m'
     INFO = '\033[95m'
     WARNING = '\033[93m'
 
+    cmap = plt.get_cmap('tab20')
+    # cmap is a function which can take a value from 0 to 1 and map it to RGBA color
+
     # color for different agent
-    DQN = 'blue'
-    DDQN = 'green'
-    DDQN_PER = 'yellow'
-    REINFORCE = 'purple'
-    ActorCritic = 'black'
+    DQN = cmap(0 / 20)
+    DDQN = cmap(1 / 20)
+    DDQN_PER = cmap(2 / 20)
+    REINFORCE = cmap(3 / 20)
+    ActorCritic = cmap(4 / 20)
+    DDPG = cmap(5 / 20)
+    TD3 = cmap(6 / 20)
+
+    # color for different line
+    cmap = plt.get_cmap('tab10')
+    REWARD = cmap(0 / 10)
+    TEST = cmap(0 / 10)
+    GOAL = cmap(3 / 10)
+    RUNNING_REWARD = cmap(1 / 10)
+
+
+def visualize_color():
+    """visualize all the color in COLOR"""
+    x = range(1, 11)
+    fig, ax = plt.subplots()
+    colors = ['DQN', 'DDQN', 'DDQN_PER', 'REINFORCE', 'ActorCritic',
+              'DDPG', 'TD3', 'GOAL', 'REWARD', 'TEST', 'RUNNING_REWARD']
+    for index, color in enumerate(colors):
+        print(getattr(Color, color))
+        ax.plot(x, [index] * 10, color=getattr(Color, color), label=color)
+    ax.legend()
+    plt.show()
 
 
 def get_base_config():
@@ -78,3 +106,6 @@ DefaultGoal = {
     'HumanoidStandup‐v2': None,
     'Walker2d‐v3': None,
 }
+
+if __name__ == '__main__':
+    visualize_color()
