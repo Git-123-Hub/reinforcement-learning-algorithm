@@ -58,6 +58,11 @@ def get_base_config():
         'run_num': 5,
         'episode_num': 1000,
 
+        # determine whether render or not,
+        # 'train' for rendering during training, 'test' for rendering during testing policy,
+        # 'both' for render in both scenario, default 'None', do not render
+        'render': None,
+
         # parameters for replay memory
         'memory_capacity': 20000,
         'batch_size': 256,

@@ -108,7 +108,7 @@ def compare(agents, path):
     ax.set_title(name)
     ax.legend(loc='upper left')
     plt.savefig(os.path.join(path, name))
-    fig.clear()
+    ax.clear()
 
 
 def transfer_experience(experiences):
