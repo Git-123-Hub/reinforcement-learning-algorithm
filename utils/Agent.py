@@ -19,7 +19,7 @@ from utils.const import Color, DefaultGoal
 
 
 # NOTE that this is a Abstract Class for agent, a subclass will have to implement following method:
-# select_action(), learn(), save_policy(), test_action(), load_policy()
+# select_action(), learn(), save_policy(), load_policy(), test_action()
 
 class Agent:
     """
@@ -211,7 +211,7 @@ class Agent:
 
         # episode finishes, print the result of this episode
         print(f'\repisode: {self._episode + 1: >3}, '
-              f'steps: {self.length[self._run][self._episode]: >4}'
+              f'steps: {self.length[self._run][self._episode]: >4}, '
               f'reward: {self.rewards[self._run][self._episode]: >5.1f}, '
               f'running reward: {self._running_reward: >5.3f}', end='')
 
@@ -235,7 +235,7 @@ class Agent:
     def learn(self):
         """
         this is where the algorithm itself is implemented
-        specify the learning behavior of the agent on every step or every episode
+        specify the learning behavior of the agent on every step or every episode(when to learn and how to learn)
         obviously, this method should be implemented in subclass
         """
         raise NotImplementedError

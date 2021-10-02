@@ -31,15 +31,21 @@ class DDQN_PER(DDQN):
 
     def learn(self):
         experiences, IS_weights = self.replayMemory.sample()
-        self._states, self._actions, self._rewards, self._next_states, self._dones = experiences
-        td_errors = self.target_value - self.current_states_value
+        states, actions, rewards, next_states, dones = experiences
+
+        current_state_value = self.Q(states).gather(1, actions.long())
+        next_state_value = self.get_next_state_value(next_states)
+        target_value = rewards + self.config.get('discount_factor', 0.99) * next_state_value * (1 - dones)
+
+        # update priority with td-error
+        td_errors = target_value - current_state_value
         self.replayMemory.update(td_errors.squeeze().tolist())
 
         # calculate loss using IS_weights
-        loss = F.mse_loss(self.current_states_value, self.target_value, reduction='none').squeeze()
+        loss = F.mse_loss(current_state_value, target_value, reduction='none').squeeze()
         IS_weights = torch.from_numpy(IS_weights)
         loss = (loss * IS_weights).mean()  # element-wise multiplication
         self.logger.info(f'loss: {loss.item()}')
 
-        self.perform_gradient_descent(loss)
-        self.update_target_Q()
+        self.gradient_descent(loss)
+        self.update_target_network()

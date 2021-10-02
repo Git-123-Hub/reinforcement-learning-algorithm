@@ -15,9 +15,8 @@ class DDQN(DQN):
         super(DDQN, self).__init__(env, Q_net, config)
 
     # DDQN differs from DQN on how to calculate next_states_value
-    @property
-    def next_states_value(self):
+    def get_next_state_value(self, next_states):
         # find the best action with max Q value using `self.Q`
-        best_action = self.Q(self._next_states).detach().argmax(1)
+        best_action = self.Q(next_states).detach().argmax(1)
         # calculate next_states_value using `self.target_Q` and the best action
-        return self.target_Q(self._next_states).detach().gather(1, best_action.unsqueeze(1))
+        return self.target_Q(next_states).detach().gather(1, best_action.unsqueeze(1))
