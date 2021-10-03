@@ -8,6 +8,7 @@ import os
 import pickle
 import random
 import time
+import abc
 
 import gym
 import matplotlib.pyplot as plt
@@ -21,7 +22,7 @@ from utils.const import Color, DefaultGoal
 # NOTE that this is a Abstract Class for agent, a subclass will have to implement following method:
 # select_action(), learn(), save_policy(), load_policy(), test_action()
 
-class Agent:
+class Agent(abc.ABC):
     """
     Abstract class for all RL agent.
     Wrap gym.Env with some data structure to record the performance of the algorithm.
@@ -215,6 +216,7 @@ class Agent:
               f'reward: {self.rewards[self._run][self._episode]: >5.1f}, '
               f'running reward: {self._running_reward: >5.3f}', end='')
 
+    @abc.abstractmethod
     def select_action(self):
         """
         determine how the agent choose action given `self.state`,
@@ -232,6 +234,7 @@ class Agent:
             experience = (self.state, self.action, self.reward, self.next_state, self.done)
             self.replayMemory.add(experience)
 
+    @abc.abstractmethod
     def learn(self):
         """
         this is where the algorithm itself is implemented
@@ -240,6 +243,7 @@ class Agent:
         """
         raise NotImplementedError
 
+    @abc.abstractmethod
     def save_policy(self):
         """save the parameters of the current network"""
         # Note that you can save the policy in a fixed step interval to evaluate the agent
@@ -387,12 +391,14 @@ class Agent:
 
         print(f'{Color.INFO}Test Finished{Color.END}')
 
+    @abc.abstractmethod
     def load_policy(self, file):
         """load the parameter saved to value-network or policy-network for testing"""
         # parameters might be loaded to different network according to different algorithm
         # so this method should be implemented by subclass
         raise NotImplementedError
 
+    @abc.abstractmethod
     def test_action(self, state):
         """get the action according to the network in test scenario"""
         # because the network might behave different(the output is unknown)

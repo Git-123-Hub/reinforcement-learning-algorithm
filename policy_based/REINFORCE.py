@@ -5,63 +5,53 @@
 ############################################
 import os
 
-import gym
 import numpy as np
 import torch
 from torch import optim
-import matplotlib.pyplot as plt
 
 from utils import Agent
-from utils.const import Color
 
 
 class REINFORCE(Agent):
-    def __init__(self, env, policyNet, config):
+    def __init__(self, env, policy, config):
         super(REINFORCE, self).__init__(env, config)
-        self._policyNet = policyNet
-        self.policy = self._policyNet(self.state_dim, self.action_dim)
-        self.optimizer = optim.Adam(self.policy.parameters(), lr=self.config.get('learning_rate', 0.01))
+        self._policy = policy  # constructor of policy network
+        self.policy, self.optimizer = None, None
+
+        self.episode_log_prob = []  # log probability of each action in a whole episode
+        self.episode_reward = []  # reward of each step in a whole episode
 
     def run_reset(self):
         super(REINFORCE, self).run_reset()
-        self.policy = self._policyNet(self.state_dim, self.action_dim)
-        self.optimizer = optim.Adam(self.policy.parameters(), lr=self.config.get('learning_rate', 0.01))
+        self.policy = self._policy(self.state_dim, self.action_dim)
+        self.optimizer = optim.Adam(self.policy.parameters(), lr=self.config.get('learning_rate', 0.001))
 
-    def run_an_episode(self):
-        episode_log_prob, episode_reward = [], []
-        while not self.done:
-            self.length[self._run][self._episode] += 1
+    def episode_reset(self):
+        super(REINFORCE, self).episode_reset()
+        self.episode_log_prob, self.episode_reward = [], []
 
-            # select action
-            state = torch.tensor(self.state).float().unsqueeze(0)
-            self.action, log_prob = self.policy(state)
-            episode_log_prob.append(log_prob)
+    def select_action(self):
+        state = torch.tensor(self.state).float().unsqueeze(0)
+        self.action, log_prob = self.policy(state)
+        self.episode_log_prob.append(log_prob)
 
-            # execute action
-            self.next_state, self.reward, self.done, _ = self.env.step(self.action)
-            # self.env.render()
-            episode_reward.append(self.reward)
-            self.rewards[self._run][self._episode] += self.reward
-            self.state = self.next_state
+    def learn(self):
+        # NOTE that REINFORCE only learn when an episode finishes
+        # before that, we need to collect sequence of rewards of this episode
+        self.episode_reward.append(self.reward)
 
-        self.learn(episode_reward, episode_log_prob)  # learn when an episode finishes
-
-        print(f'\r{self._episode + 1: >4}th episode: '
-              f'{self.length[self._run][self._episode]: >3} steps, '
-              f'rewards: {self.rewards[self._run][self._episode]: >7.2f}, '
-              f'running reward: {self._running_reward: >7.2f}, '
-              f'learning rate: {self._learning_rate: >7.6f}, ', end='')
-
-    def learn(self, reward_list, log_prob_list):
-        returns = np.zeros_like(reward_list)
-        eps = np.finfo(np.float32).eps.item()  # tiny non-negative number
+        if not self.done:  # only learn when an episode finishes
+            return
+        returns = np.zeros_like(self.episode_reward)
         R = 0
-        for index in reversed(range(len(reward_list))):
-            R = reward_list[index] + self.config.get('discount_factor', 0.99) * R
+        for index in reversed(range(len(self.episode_reward))):
+            R = self.episode_reward[index] + self.config.get('discount_factor', 0.99) * R
             returns[index] = R
-        returns = (returns - returns.mean()) / (returns.std() + eps)
-        loss_list = torch.cat(log_prob_list) * torch.from_numpy(-returns)
-        # Note the negative sign for `returns` to change gradient ascent to gradient decent
+
+        eps = np.finfo(np.float32).eps.item()  # tiny non-negative number
+        returns = (returns - returns.mean()) / (returns.std() + eps)  # normalize
+        loss_list = torch.cat(self.episode_log_prob) * torch.from_numpy(-returns)
+        # Note the negative sign for `returns` to change gradient ascent to gradient descent
 
         loss = loss_list.sum()
         self.optimizer.zero_grad()
@@ -69,7 +59,7 @@ class REINFORCE(Agent):
         self.optimizer.step()
 
     def save_policy(self):
-        """save the parameter of the policy network(`self.policy`) when the running reward reaches `self.goal`"""
+        """save the parameter of the policy-network when the running reward reaches `self.goal`"""
         if self._running_reward >= self.goal:
             name = f'{self.__class__.__name__}_solve_{self.env_id}_{self._run + 1}_{self._episode + 1}.pt'
             torch.save(self.policy.state_dict(), os.path.join(self.policy_path, name))
