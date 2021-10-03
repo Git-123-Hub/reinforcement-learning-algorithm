@@ -96,6 +96,7 @@ class REINFORCE_BASELINE(Agent):
             torch.save(self.actor.state_dict(), os.path.join(self.policy_path, name))
 
     def load_policy(self, file):
+        if self.actor is None: self.actor = self._actor(self.state_dim, self.action_dim)
         self.actor.load_state_dict(torch.load(file))
         self.actor.eval()
 

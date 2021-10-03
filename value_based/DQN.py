@@ -112,6 +112,7 @@ class DQN(Agent):
             torch.save(self.Q.state_dict(), os.path.join(self.policy_path, name))
 
     def load_policy(self, file):
+        if self.Q is None: self.Q = self._Q(self.state_dim, self.action_dim)
         self.Q.load_state_dict(torch.load(file))
         self.Q.eval()
 

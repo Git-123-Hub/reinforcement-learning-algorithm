@@ -66,6 +66,7 @@ class REINFORCE(Agent):
             torch.save(self.policy.state_dict(), os.path.join(self.policy_path, name))
 
     def load_policy(self, file):
+        if self.policy is None: self.policy = self._policy(self.state_dim, self.action_dim)
         self.policy.load_state_dict(torch.load(file))
         self.policy.eval()
 

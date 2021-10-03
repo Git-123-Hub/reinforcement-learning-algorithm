@@ -3,9 +3,7 @@
 # @Date: 2021/9/23
 # @Description: implementation of DDPG(Deep Deterministic Policy Gradient)
 ############################################
-import copy
 import os
-import random
 from copy import deepcopy
 
 import numpy as np
@@ -31,7 +29,6 @@ class DDPG(Agent):
 
     def run_reset(self):
         super(DDPG, self).run_reset()
-        self.replayMemory.reset()
 
         self.actor = self._actor(self.state_dim)
         self.target_actor = deepcopy(self.actor)
@@ -40,30 +37,6 @@ class DDPG(Agent):
         self.critic = self._critic(self.state_dim, self.action_dim)
         self.target_critic = deepcopy(self.critic)
         self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=self.config.get('learning_rate', 0.001))
-
-    def run_an_episode(self):
-        while not self.done:
-            self.select_action()
-
-            # execute action
-            self.next_state, self.reward, self.done, _ = self.env.step(self.action)
-            # self.env.render()
-
-            self.length[self._run][self._episode] += 1
-            self.rewards[self._run][self._episode] += self.reward
-
-            # save experience
-            experience = (self.state, self.action, self.reward, self.next_state, self.done)
-            self.replayMemory.add(experience)
-
-            self.learn()
-
-            self.state = self.next_state
-
-        print(f'\repisode: {self._episode + 1: >3}, '
-              f'steps: {self.length[self._run][self._episode]: >3}, '
-              f'rewards: {self.rewards[self._run][self._episode]: >5.1f}, '
-              f'running reward: {self._running_reward: >7.3f}', end='')
 
     def select_action(self):
         self.actor.eval()
@@ -75,52 +48,37 @@ class DDPG(Agent):
         self.action += noise  # gym environment will do the clip on action
 
     def learn(self):
-        if not self.replayMemory.ready:
+        if not self.replayMemory.ready:  # only start to learn when there are enough experience to learn
             return
-        self._states, self._actions, self._rewards, self._next_states, self._dones = self.replayMemory.sample()
+        states, actions, rewards, next_states, dones = self.replayMemory.sample()
 
-        # update critic
+        # update critic using the loss between current_state_value and bootstrap target_value
+        self.critic.eval()
+        current_state_action_value = self.critic(states, actions)
+        self.critic.train()
+
+        # calculate next_state_action_value using the next_action get from target_actor
+        next_action = self.target_actor(next_states).detach()
+        next_state_action_value = self.target_critic(next_states, next_action).detach()
+        target_value = rewards + self.config.get('discount_factor', 0.99) * next_state_action_value * (1 - dones)
+
+        loss = F.mse_loss(current_state_action_value, target_value, reduction='mean')
         self.critic_optimizer.zero_grad()
-        loss = F.mse_loss(self.current_state_action_value, self.target_value, reduction='mean')
         loss.backward()
         self.critic_optimizer.step()
 
         # update actor using the critic value of sampled states
-        self.actor_optimizer.zero_grad()
         # note these actions are not sampled, but get from actor
-        actions = self.actor(self._states)
-        loss = -self.critic(self._states, actions)  # node the negative sign
-        loss.mean().backward()
+        actions = self.actor(states)
+        loss = -self.critic(states, actions).mean()  # note the negative sign
+        self.actor_optimizer.zero_grad()
+        loss.backward()
         self.actor_optimizer.step()
 
-        self.update_target_network()
-
-    @property
-    def current_state_action_value(self):
-        self.critic.eval()
-        value = self.critic(self._states, self._actions)
-        self.critic.train()
-        return value
-
-    @property
-    def next_state_action_value(self):
-        # get next action using target_actor
-        next_action = self.target_actor(self._next_states).detach()
-        return self.target_critic(self._next_states, next_action).detach()
-
-    @property
-    def target_value(self):
-        return self._rewards + self.config.get(
-            'discount_factor', 0.99) * self.next_state_action_value * (1 - self._dones)
-
-    def update_target_network(self):
+        # update target network
         if self.length[self._run].sum() % self.config.get('Q_update_interval', 1) == 0:  # time to update
-            if 'tau' in self.config:  # soft update
-                soft_update(self.actor, self.target_actor, self.config.get('tau', 0.01))
-                soft_update(self.critic, self.target_critic, self.config.get('tau', 0.01))
-            else:
-                self.target_actor = deepcopy(self.actor)
-                self.target_critic = deepcopy(self.critic)
+            soft_update(self.actor, self.target_actor, self.config.get('tau', 0.01))
+            soft_update(self.critic, self.target_critic, self.config.get('tau', 0.01))
 
     def save_policy(self):
         if self._running_reward >= self.goal:
@@ -128,7 +86,7 @@ class DDPG(Agent):
             torch.save(self.actor.state_dict(), os.path.join(self.policy_path, name))
 
     def load_policy(self, file):
-        self.actor = self._actor(self.state_dim)
+        if self.actor is None: self.actor = self._actor(self.state_dim)
         self.actor.load_state_dict(torch.load(file))
         self.actor.eval()
 
