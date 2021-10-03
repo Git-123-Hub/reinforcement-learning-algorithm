@@ -18,8 +18,8 @@ class REINFORCE(Agent):
         self._policy = policy  # constructor of policy network
         self.policy, self.optimizer = None, None
 
-        self.episode_log_prob = []  # log probability of each action in a whole episode
-        self.episode_reward = []  # reward of each step in a whole episode
+        self.episode_log_prob = []  # log probability of each action in a whole episode, used to update policy
+        self.episode_reward = []  # reward of each step in a whole episode, used to calculate sum of discounted reward
 
     def run_reset(self):
         super(REINFORCE, self).run_reset()
@@ -37,7 +37,7 @@ class REINFORCE(Agent):
 
     def learn(self):
         # NOTE that REINFORCE only learn when an episode finishes
-        # before that, we need to collect sequence of rewards of this episode
+        # before that, we need to collect sequence of reward of this episode
         self.episode_reward.append(self.reward)
 
         if not self.done:  # only learn when an episode finishes
@@ -50,10 +50,11 @@ class REINFORCE(Agent):
 
         eps = np.finfo(np.float32).eps.item()  # tiny non-negative number
         returns = (returns - returns.mean()) / (returns.std() + eps)  # normalize
-        loss_list = torch.cat(self.episode_log_prob) * torch.from_numpy(-returns)
-        # Note the negative sign for `returns` to change gradient ascent to gradient descent
 
-        loss = loss_list.sum()
+        # update policy
+        loss = torch.cat(self.episode_log_prob) * torch.from_numpy(-returns)
+        # Note the negative sign for `returns` to change gradient ascent to gradient descent
+        loss = loss.sum()
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()

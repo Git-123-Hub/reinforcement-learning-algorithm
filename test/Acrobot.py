@@ -11,7 +11,7 @@ import torch
 import torch.nn as nn
 from torch.distributions import Categorical
 
-from policy_based.ActorCritic import ActorCritic
+from policy_based.REINFORCE_BASELINE import REINFORCE_BASELINE
 from policy_based.REINFORCE import REINFORCE
 from utils.const import get_base_config
 from utils.util import compare
@@ -104,7 +104,7 @@ if __name__ == '__main__':
     agent.train()
     # agent.test()
 
-    agent = ActorCritic(env, Policy, Critic, config)
+    agent = REINFORCE_BASELINE(env, Policy, Critic, config)
     agent.train()
     # agent.test()
 

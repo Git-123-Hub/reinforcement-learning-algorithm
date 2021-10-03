@@ -24,7 +24,7 @@ class Color:
     DDQN = cmap(1 / 20)
     DDQN_PER = cmap(2 / 20)
     REINFORCE = cmap(3 / 20)
-    ActorCritic = cmap(4 / 20)
+    REINFORCE_BASELINE = cmap(4 / 20)
     DDPG = cmap(5 / 20)
     TD3 = cmap(6 / 20)
 

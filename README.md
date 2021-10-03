@@ -14,7 +14,7 @@ implementation of reinforcement learning algorithm that is easy to read and unde
 - DDQN with prioritized experience replay
   [Prioritized Experience Replay](https://arxiv.org/abs/1511.05952)
 - REINFORCE(Monte-Carlo Policy Gradient)
-- ActorCritic
+- REINFORCE with BASELINE
 - DDPG
   [Continuous control with deep reinforcement learning](https://arxiv.org/abs/1509.02971)
 - TD3
