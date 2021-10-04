@@ -66,11 +66,12 @@ class Agent(abc.ABC):
 
         self.length = np.zeros((self.run_num, self.episode_num), dtype=int)
         # record the length of every episode, index from 0
-        # {self.length[n][m]} represents the length of the (n+1)th run, (m+1)th episode
+        # `self.length[n][m]` represents the length of the (n+1)th run, (m+1)th episode
+        # NOTE that `self.length[n].sum()` represents total steps of `n+1`th run
 
         self.rewards = np.zeros((self.run_num, self.episode_num), dtype=np.float64)
         # record total reward of every episode, index from 0
-        # {self.rewards[n][m]} represents the reward of the (n+1)th run, (m+1)th episode
+        # `self.rewards[n][m]` represents the reward of the (n+1)th run, (m+1)th episode
 
         # todo: different env might have different moving window
         self.window = 100

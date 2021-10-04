@@ -35,7 +35,6 @@ class TD3(Agent):
 
     def run_reset(self):
         super(TD3, self).run_reset()
-        self.replayMemory.reset()
 
         self.actor = self._actor(self.state_dim, self.action_dim, max_action=self.max_action)
         self.target_actor = deepcopy(self.actor)
@@ -48,30 +47,6 @@ class TD3(Agent):
         self.critic2 = self._critic(self.state_dim, self.action_dim)
         self.target_critic2 = deepcopy(self.critic2)
         self.critic2_optimizer = optim.Adam(self.critic2.parameters(), lr=self.config.get('learning_rate', 0.001))
-
-    def run_an_episode(self):
-        while not self.done:
-            self.select_action()
-
-            # execute action
-            self.next_state, self.reward, self.done, _ = self.env.step(self.action)
-            # self.env.render()
-
-            self.length[self._run][self._episode] += 1
-            self.rewards[self._run][self._episode] += self.reward
-
-            # save experience
-            experience = (self.state, self.action, self.reward, self.next_state, self.done)
-            self.replayMemory.add(experience)
-
-            self.learn()
-
-            self.state = self.next_state
-
-        print(f'\repisode: {self._episode + 1: >3}, '
-              f'steps: {self.length[self._run][self._episode]: >3}, '
-              f'rewards: {self.rewards[self._run][self._episode]: >5.1f}, '
-              f'running reward: {self._running_reward: >7.3f}', end='')
 
     def select_action(self):
         self.actor.eval()
@@ -91,52 +66,50 @@ class TD3(Agent):
         return np.clip(noise, noise_clip * self.min_action, noise_clip * self.max_action)
 
     def learn(self):
-        if not self.replayMemory.ready:
+        if not self.replayMemory.ready:  # only start to learn when there are enough experience to sample
             return
-        self._states, self._actions, self._rewards, self._next_states, self._dones = self.replayMemory.sample()
+        states, actions, rewards, next_states, dones = self.replayMemory.sample()
 
-        # get next action using target actor and next state
-        next_actions = self.target_actor(self._next_states)
+        # get next_action of next_state using target_actor
+        next_actions = self.target_actor(next_states)
         next_actions += torch.tensor(self.get_action_noise(next_actions.size()))
         # we should clip the action here, because these actions are not passed into the env
         next_actions.clip_(self.min_action, self.max_action)
 
         # calculate target value
-        target_critic1_value = self.target_critic1(self._next_states, next_actions)
-        target_critic2_value = self.target_critic2(self._next_states, next_actions)
+        target_critic1_value = self.target_critic1(next_states, next_actions)
+        target_critic2_value = self.target_critic2(next_states, next_actions)
         target_critic_value = torch.min(target_critic1_value, target_critic2_value).detach()
-        target_value = self._rewards + self.config.get(
-            'discount_factor', 0.99) * target_critic_value * (1 - self._dones)
+        target_value = rewards + self.config.get('discount_factor', 0.99) * target_critic_value * (1 - dones)
 
         # update critic1
-        self.critic1_optimizer.zero_grad()
-
         self.critic1.eval()
-        current_value = self.critic1(self._states, self._actions)
+        current_value = self.critic1(states, actions)
         self.critic1.train()
 
         loss = F.mse_loss(current_value, target_value, reduction='mean')
+        self.critic1_optimizer.zero_grad()
         loss.backward()
         self.critic1_optimizer.step()
 
         # update critic2
-        self.critic2_optimizer.zero_grad()
-
         self.critic2.eval()
-        current_value = self.critic2(self._states, self._actions)
+        current_value = self.critic2(states, actions)
         self.critic2.train()
 
         loss = F.mse_loss(current_value, target_value, reduction='mean')
+        self.critic2_optimizer.zero_grad()
         loss.backward()
         self.critic2_optimizer.step()
 
-        # time to update actor and target network
         if self.length[self._run].sum() % self.config.get('update_interval', 1) == 0:
-            loss = -self.critic1(self._states, self.actor(self._states)).mean()  # note the negative sign
+            # update actor using the critic value of current state with action from actor
+            loss = -self.critic1(states, self.actor(states)).mean()  # note the negative sign
             self.actor_optimizer.zero_grad()
             loss.backward()
             self.actor_optimizer.step()
 
+            # update target network
             soft_update(self.actor, self.target_actor, self.config.get('tau', 0.01))
             soft_update(self.critic1, self.target_critic1, self.config.get('tau', 0.01))
             soft_update(self.critic2, self.target_critic2, self.config.get('tau', 0.01))
@@ -147,7 +120,7 @@ class TD3(Agent):
             torch.save(self.actor.state_dict(), os.path.join(self.policy_path, name))
 
     def load_policy(self, file):
-        self.actor = self._actor(self.state_dim, self.action_dim)
+        if self.actor is None: self.actor = self._actor(self.state_dim, self.action_dim)
         self.actor.load_state_dict(torch.load(file))
         self.actor.eval()
 
