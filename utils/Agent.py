@@ -266,7 +266,7 @@ class Agent(abc.ABC):
         name = f'result of {self.__class__.__name__} solving {self.env_id}({self._run + 1}th run)'
         ax.set_title(name)
         plt.savefig(os.path.join(self.results_path, name))
-        ax.clear()
+        plt.close(fig)
 
     def plot_running_rewards(self):
         """plot `self.running_rewards` statistically to indicate the performance(stability) of the training"""
@@ -285,15 +285,16 @@ class Agent(abc.ABC):
         ax.plot(x, mean - std, color=color, alpha=0.2)
         ax.plot(x, mean + std, color=color, alpha=0.2)
         ax.fill_between(x, y1=mean - std, y2=mean + std, color=color, alpha=0.1)
+        ax.hlines(y=self.goal, xmin=1, xmax=self.episode_num, label='goal', color=Color.GOAL)
 
-        for run in range(self.run_num):  # plot running reward of each run separately
-            ax.plot(x, self.running_rewards[run], label=f'{run + 1}th run')
+        # for run in range(self.run_num):  # plot running reward of each run separately
+        #     ax.plot(x, self.running_rewards[run], label=f'{run + 1}th run')
+        # ax.legend(loc='lower right')
 
         name = f'running reward of {self.__class__.__name__} solving {self.env_id}'
-        ax.legend(loc='lower right')
         ax.set_title(name)
         plt.savefig(os.path.join(self.results_path, name))
-        ax.clear()
+        plt.close(fig)
 
     @property
     def _running_reward(self):
@@ -390,6 +391,7 @@ class Agent(abc.ABC):
             plt.savefig(os.path.join(self.results_path, name))
             ax.clear()
 
+        plt.close(fig)
         print(f'{Color.INFO}Test Finished{Color.END}')
 
     @abc.abstractmethod

@@ -16,20 +16,19 @@ class Color:
     INFO = '\033[95m'
     WARNING = '\033[93m'
 
-    cmap = plt.get_cmap('tab20')
+    cmap = plt.get_cmap('tab10')
     # cmap is a function which can take a value from 0 to 1 and map it to RGBA color
 
     # color for different agent
-    DQN = cmap(0 / 20)
-    DDQN = cmap(1 / 20)
-    DDQN_PER = cmap(2 / 20)
-    REINFORCE = cmap(3 / 20)
-    REINFORCE_BASELINE = cmap(4 / 20)
-    DDPG = cmap(5 / 20)
-    TD3 = cmap(6 / 20)
+    DQN = cmap(0 / 10)
+    DDQN = cmap(1 / 10)
+    DDQN_PER = cmap(2 / 10)
+    REINFORCE = cmap(3 / 10)
+    REINFORCE_BASELINE = cmap(4 / 10)
+    DDPG = cmap(5 / 10)
+    TD3 = cmap(6 / 10)
 
     # color for different line
-    cmap = plt.get_cmap('tab10')
     REWARD = cmap(0 / 10)
     TEST = cmap(0 / 10)
     GOAL = cmap(3 / 10)
@@ -40,7 +39,7 @@ def visualize_color():
     """visualize all the color in COLOR"""
     x = range(1, 11)
     fig, ax = plt.subplots()
-    colors = ['DQN', 'DDQN', 'DDQN_PER', 'REINFORCE', 'ActorCritic',
+    colors = ['DQN', 'DDQN', 'DDQN_PER', 'REINFORCE', 'REINFORCE_BASELINE',
               'DDPG', 'TD3', 'GOAL', 'REWARD', 'TEST', 'RUNNING_REWARD']
     for index, color in enumerate(colors):
         print(getattr(Color, color))
@@ -81,18 +80,16 @@ def get_base_config():
         'clear_result': False,
         'clear_policy': False,
 
-        'learning_rate': 0.01,  # start learning rate
-        'learning_rate_decay_rate': 0.99,
-        'min_learning_rate': 0.0001,
+        'learning_rate': 1e-3,  # start learning rate
 
         'epsilon': 1,  # start epsilon
         'epsilon_decay_rate': 0.99,
         'min_epsilon': 0.01,
 
-        'tau': 0.2,  # parameter for network soft-update
+        'tau': 0.01,  # parameter for network soft-update
 
         # interval of update target_network
-        'Q_update_interval': 10,  # if not specified, update every step, i.e. equals 1
+        'Q_update_interval': 5,  # if not specified, update every step, i.e. equals 1
 
         # ##### parameters for TD3 ##### #
         # specify mean and std for normal distribution noise

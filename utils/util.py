@@ -102,13 +102,11 @@ def compare(agents, path):
             ax.plot(x, mean - std, color=color, alpha=0.1)
             ax.plot(x, mean + std, color=color, alpha=0.1)
             ax.fill_between(x, y1=mean - std, y2=mean + std, color=color, alpha=0.1)
-    # convert `agents`(a list of string) to a string for better look
-    names = ''.join(f'{name} ' for name in agents)
-    name = f'statistical running rewards of {names} solving {env_id}'
+    name = f'statistical running rewards of {env_id}'
     ax.set_title(name)
     ax.legend(loc='upper left')
     plt.savefig(os.path.join(path, name))
-    ax.clear()
+    plt.close(fig)
 
 
 def transfer_experience(experiences):
