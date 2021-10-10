@@ -259,9 +259,10 @@ class Agent(abc.ABC):
         ax.set_xlabel('episode')
         ax.set_ylabel('reward')
         x = np.arange(1, self.episode_num + 1)
-        ax.plot(x, self.rewards[self._run], label='reward', color=Color.REWARD)
-        ax.plot(x, self.running_rewards[self._run], label='running reward', color=Color.RUNNING_REWARD)
-        ax.hlines(y=self.goal, xmin=1, xmax=self.episode_num, label='goal', colors=Color.GOAL)
+        ax.plot(x, self.rewards[self._run], label='reward', color=Color.REWARD, zorder=1)
+        ax.hlines(y=self.goal, xmin=1, xmax=self.episode_num, label='goal', colors=Color.GOAL, zorder=2)
+        ax.plot(x, self.running_rewards[self._run], label='running reward', color=Color.RUNNING_REWARD, zorder=3)
+
         ax.legend(loc='lower right')
         name = f'result of {self.__class__.__name__} solving {self.env_id}({self._run + 1}th run)'
         ax.set_title(name)

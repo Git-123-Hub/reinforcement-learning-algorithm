@@ -45,8 +45,9 @@ class Policy(nn.Module):
         self.fc = nn.Sequential(
             nn.Linear(state_dim, 32),
             nn.ReLU(),
+            nn.Linear(32, 32),
+            nn.ReLU(),
             nn.Linear(32, action_dim),
-            # nn.ReLU(),
             nn.Softmax(dim=1)
         )
 
@@ -63,9 +64,9 @@ class Critic(nn.Module):
     def __init__(self, state_dim):
         super(Critic, self).__init__()
         self.fc = nn.Sequential(
-            nn.Linear(state_dim, 32),
+            nn.Linear(state_dim, 64),
             nn.ReLU(),
-            nn.Linear(32, 1),
+            nn.Linear(64, 1),
         )
 
     def forward(self, state):
@@ -83,15 +84,17 @@ if __name__ == '__main__':
     config['policy'] = './Acrobot-policy'
     config['seed'] = 756170127
     config['run_num'] = 3
-    config['episode_num'] = 1000
+    config['episode_num'] = 500
 
     config['learning_rate'] = 0.001
-    config['learning_rate_decay_rate'] = 1
 
     # config for DQN
     config['min_epsilon'] = 0.001
     config['Q_update_interval'] = 20
     config['tau'] = 0.1
+
+    agent = DQN(env, QNet, config)
+    agent.train()
 
     agent = DDQN(env, QNet, config)
     agent.train()
@@ -99,13 +102,14 @@ if __name__ == '__main__':
     agent = DDQN_PER(env, QNet, config)
     agent.train()
 
+    # NOTE that the performance of these policy based method is not stable
+    # sometimes it can solve the problem, while it may also learn nothing
     config['learning_rate'] = 0.005
+    config['episode_num'] = 1000
     agent = REINFORCE(env, Policy, config)
     agent.train()
-    # agent.test()
 
     agent = REINFORCE_BASELINE(env, Policy, Critic, config)
     agent.train()
-    # agent.test()
 
-    compare(['DDQN', 'DDQN_PER', 'REINFORCE', 'ActorCritic'], './Acrobot-results')
+    compare(['DQN', 'DDQN', 'DDQN_PER', 'REINFORCE', 'REINFORCE_BASELINE'], config['results'])

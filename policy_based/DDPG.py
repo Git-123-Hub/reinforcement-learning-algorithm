@@ -30,7 +30,7 @@ class DDPG(Agent):
     def run_reset(self):
         super(DDPG, self).run_reset()
 
-        self.actor = self._actor(self.state_dim)
+        self.actor = self._actor(self.state_dim, self.action_dim)
         self.target_actor = deepcopy(self.actor)
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.config.get('learning_rate', 0.001))
 
