@@ -1,6 +1,8 @@
 # reinforcement-learning-algorithm
 
-implementation of reinforcement learning algorithm that is easy to read and understand
+- `object oriented`: all of the rl agents using the same framework(base class `Agent`), makes it easy to read and
+  understand
+- `perfect reproduction`: training result would be exactly the same under the same random seed
 
 # algorithm implemented and corresponding paper
 
@@ -19,6 +21,10 @@ implementation of reinforcement learning algorithm that is easy to read and unde
   [Continuous control with deep reinforcement learning](https://arxiv.org/abs/1509.02971)
 - TD3
   [Addressing Function Approximation Error in Actor-Critic Methods](https://arxiv.org/abs/1802.09477)
+- SAC
+  [Soft Actor-Critic: Off-Policy Maximum Entropy Deep Reinforcement Learning with a Stochastic Actor](https://arxiv.org/abs/1801.01290)
+  ,
+  [Soft Actor-Critic Algorithms and Applications](https://arxiv.org/abs/1812.05905)
 
 # online result
 
@@ -98,3 +104,4 @@ implementation of reinforcement learning algorithm that is easy to read and unde
 - [reinforcement learning examples of pytorch](
   https://github.com/pytorch/examples/tree/master/reinforcement_learning)
 - [Author's PyTorch implementation of TD3](https://github.com/sfujim/TD3)
+- [RLkit]((https://github.com/rail-berkeley/rlkit))
