@@ -27,6 +27,7 @@ class Color:
     REINFORCE_BASELINE = cmap(4 / 10)
     DDPG = cmap(5 / 10)
     TD3 = cmap(6 / 10)
+    SAC = cmap(7 / 10)
 
     # color for different line
     REWARD = cmap(0 / 10)

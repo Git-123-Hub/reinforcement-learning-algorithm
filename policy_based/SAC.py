@@ -3,6 +3,7 @@
 # @Date: 2021/10/12
 # @Description: implementation of SAC(soft actor critic)
 ############################################
+import os
 from copy import deepcopy
 from time import time
 
@@ -124,6 +125,7 @@ class SAC(Agent):
         # c) update alpha
         _alpha_time = time()
         loss = -(self.log_alpha * (log_prob.detach() + self.target_entropy)).mean()
+        # NOTE that we are optimizing log_alpha, so the alpha in eq(18) should be replaced with log_alpha(I guess)
         self.log_alpha_optimizer.zero_grad()
         loss.backward()
         self.log_alpha_optimizer.step()
@@ -161,11 +163,16 @@ class SAC(Agent):
         return action, log_prob.sum(dim=1, keepdim=True)
 
     def save_policy(self):
-        pass
+        if self._running_reward >= self.goal:
+            name = f'{self.__class__.__name__}_solve_{self.env_id}_{self._run + 1}_{self._episode + 1}.pt'
+            torch.save(self.actor.state_dict(), os.path.join(self.policy_path, name))
 
     def load_policy(self, file):
-        pass
+        if self.actor is None: self.actor = self._actor(self.state_dim, self.action_dim)
+        self.actor.load_state_dict(torch.load(file))
+        self.actor.eval()
 
     def test_action(self, state):
-        # NOTE that deterministic action might use `tanh`
-        pass
+        # NOTE that deterministic action use mean of the distribution
+        # todo: might need `tanh`
+        self.action = self.actor(self.state).mean.detach().numpy()
