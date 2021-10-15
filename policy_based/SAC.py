@@ -5,7 +5,6 @@
 ############################################
 import os
 from copy import deepcopy
-from time import time
 
 import numpy as np
 import torch
@@ -64,25 +63,38 @@ class SAC(Agent):
         self.target_critic2 = deepcopy(self.critic2)
         self.critic2_optimizer = torch.optim.Adam(self.critic2.parameters(), lr=self.config.get('learning_rate', 1e-4))
 
+    def resample(self, state, get_log_prob=True):
+        """sample action on state from the policy, and calculate the log-prob using reparameterization trick"""
+        distribution = self.actor(state)
+        # get next_action of next_states using the reparameterization trick
+        mu = distribution.rsample().detach()
+        action = torch.tanh(mu) * self.max_action
+        if not get_log_prob:  # pass into gym, we have to convert it to numpy()
+            return action.numpy()
+
+        # calculate log_prob of next_action
+        log_prob = distribution.log_prob(mu)
+        # method 1: introduced in Appendix C of the paper, which I didn't use
+        # # # log_prob -= torch.log(1 - action.pow(2) + torch.finfo(torch.float32).eps)
+
+        # method 2: more numerically-stable way
+        # used in spinning-up(https://github.com/openai/spinningup/blob/master/spinup/algos/pytorch/sac/core.py#L60)
+        # proof: (https://github.com/openai/spinningup/issues/279)
+        log_prob -= 2 * (np.log(2) - mu - F.softplus(-2 * mu))
+        return action, log_prob.sum(dim=1, keepdim=True)
+
     def select_action(self):
         """sample action from the policy"""
-        # todo: check data dimension
         self.actor.eval()
-        # todo: should select action using `tanh`
-        self.action = self.actor(self.state).sample().detach().numpy()
+        self.action = self.resample(self.state, False)
         self.actor.train()
 
     def learn(self):
         if not self.replayMemory.ready:  # only start to learn when there are enough experience to sample
             return
-        _total_t = time()
         states, actions, rewards, next_states, dones = self.replayMemory.sample()
 
-        self.logger.info('-' * 20)
-
         # a) update Critic by minimizing the soft Bellman residual
-        _critic_time = time()
-
         with torch.no_grad():
             next_actions, log_prob = self.resample(next_states)
             # calculate the soft-Q-value of (next-states, next-actions) using corresponding target network
@@ -106,24 +118,17 @@ class SAC(Agent):
         loss.backward()
         self.critic2_optimizer.step()
 
-        self.logger.info(f'critic time: {time() - _critic_time}')
-
         # b) update policy
-        _policy_time = time()
-        actions, log_prob = self.resample(states)
+        actions, log_prob = self.resample(states)  # NOTE that `actions` are resampled, not from replayMemory
         soft_Q_value_1 = self.critic1(states, actions)
         soft_Q_value_2 = self.critic2(states, actions)
         soft_Q_value = torch.min(soft_Q_value_1, soft_Q_value_2)
-        # todo: necessity of mean
         loss = (self.alpha * log_prob - soft_Q_value).mean()
         self.actor_optimizer.zero_grad()
         loss.backward()
         self.actor_optimizer.step()
 
-        self.logger.info(f'policy time: {time() - _policy_time}')
-
         # c) update alpha
-        _alpha_time = time()
         loss = -(self.log_alpha * (log_prob.detach() + self.target_entropy)).mean()
         # NOTE that we are optimizing log_alpha, so the alpha in eq(18) should be replaced with log_alpha(I guess)
         self.log_alpha_optimizer.zero_grad()
@@ -131,36 +136,9 @@ class SAC(Agent):
         self.log_alpha_optimizer.step()
         self.alpha = self.log_alpha.exp()
 
-        # self.logger.info(f'alpha time: {time() - _alpha_time}')
-
         # d) update target network
-        _soft_time = time()
-        # todo: maybe add interval
         soft_update(self.critic1, self.target_critic1, self.config.get('tau', 0.01))
         soft_update(self.critic2, self.target_critic2, self.config.get('tau', 0.01))
-
-        # self.logger.info(f'soft update time: {time() - _soft_time}')
-
-        self.logger.info(f'learn time: {time() - _total_t}')
-
-    def resample(self, state):
-        """sample action on state from the policy, and calculate the log-prob using reparameterization trick"""
-        _t = time()
-        # calculate the soft-state-value of `state`
-        distribution = self.actor(state)
-        # get next_action of next_states using the reparameterization trick
-        # todo: maybe update critic doesn't need reparameterization, just the policy
-        # todo: check data dimension
-        mu = distribution.rsample()
-        action = torch.tanh(mu)
-        # calculate log_prob of next_actions using the method introduced in Appendix C of the paper
-        # todo: use mean or sum
-        log_prob = distribution.log_prob(mu)
-        # todo: how to calculate `pow` and `sum`
-        log_prob -= torch.log(1 - action.pow(2) + torch.finfo(torch.float32).eps)
-
-        self.logger.info(f'resample time: {time() - _t}')
-        return action, log_prob.sum(dim=1, keepdim=True)
 
     def save_policy(self):
         if self._running_reward >= self.goal:
@@ -174,5 +152,5 @@ class SAC(Agent):
 
     def test_action(self, state):
         # NOTE that deterministic action use mean of the distribution
-        # todo: might need `tanh`
-        self.action = self.actor(self.state).mean.detach().numpy()
+        mean = self.actor(self.state).mean
+        return torch.tanh(mean).detach().numpy() * self.max_action
