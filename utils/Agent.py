@@ -34,6 +34,8 @@ class Agent(abc.ABC):
         self.env_id = self.env.unwrapped.spec.id
         self.goal = self.env.spec.reward_threshold
         if self.goal is None: self.goal = DefaultGoal[self.env_id]
+        self.max_action = self.env.action_space.high[0]
+        self.min_action = self.env.action_space.low[0]
         self.state, self.action, self.next_state, self.reward, self.done = None, None, None, None, False
 
         # get state_dim and action_dim for initializing the network

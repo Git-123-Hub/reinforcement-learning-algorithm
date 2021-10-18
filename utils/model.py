@@ -17,10 +17,11 @@ from torch.distributions import Categorical, Normal
 class MLP(nn.Module, abc.ABC):
     """base class for all the network used in this project"""
 
-    def __init__(self, input_size, output_size, hidden_layer: List[int] = None, *, softmax=False):
+    def __init__(self, input_size, output_size, hidden_layer: List[int] = None, *, softmax=False, tanh=False):
         """
         construct a MLP given input_size, output_size, hidden-layer
         :type softmax: bool, indicate whether add softmax to the last output of the net
+        :type tanh: bool, indicate whether add tanh to bound the output to [-1, 1]
         """
         super(MLP, self).__init__()
         if hidden_layer is None:
@@ -38,6 +39,8 @@ class MLP(nn.Module, abc.ABC):
 
         if softmax:
             modules.append(nn.Softmax(dim=1))
+        if tanh:
+            modules.append(nn.Tanh())
 
         self.net = nn.Sequential(*modules)
 
@@ -47,15 +50,15 @@ class MLP(nn.Module, abc.ABC):
         raise NotImplementedError
 
 
-class StateActionCritic(MLP):
-    """approximator for Q-value, i.e. state-action value, Q(s,a)"""
+class QNet(MLP):
+    """approximator for Q-value, output estimated value of each action"""
 
     def __init__(self, state_dim, action_dim, hidden_layer: List[int] = None):
         """
         net that takes state as input and output Q-value of each action
         :type hidden_layer: specify size of each hidden layer
         """
-        super(StateActionCritic, self).__init__(state_dim, action_dim, hidden_layer)
+        super(QNet, self).__init__(state_dim, action_dim, hidden_layer)
 
     def forward(self, state):
         """input: state, output: Q-value of each action"""
@@ -73,15 +76,27 @@ class StateCritic(MLP):
         return self.net(state)
 
 
+class StateActionCritic(MLP):
+    """critic for state-action value, i.e. Q(s,a)"""
+
+    def __init__(self, state_dim, action_dim, hidden_layer=None):
+        super(StateActionCritic, self).__init__(state_dim + action_dim, 1, hidden_layer)
+
+    def forward(self, state, action):
+        """return approximate value for Q(s,a)"""
+        return self.net(torch.cat([state, action], 1))
+
+
 class DeterministicActor(MLP):
     """actor with deterministic policy, i.e. action = policy(state)"""
 
-    def __init__(self, state_dim, action_dim, hidden_layer=None):
+    def __init__(self, state_dim, action_dim, hidden_layer=None, *, max_action=1):
         """deterministic policy which takes state as input and output an action with value"""
-        super(DeterministicActor, self).__init__(state_dim, action_dim, hidden_layer)
+        super(DeterministicActor, self).__init__(state_dim, action_dim, hidden_layer, tanh=True)
+        self.max_action = max_action
 
     def forward(self, state):
-        return self.net(state)
+        return self.net(state) * self.max_action
 
 
 class DiscreteStochasticActor(MLP):
@@ -122,8 +137,11 @@ class ContinuousStochasticActor(MLP):
 
 
 if __name__ == '__main__':
-    print('net structure of StateActionCritic:', StateActionCritic(12, 2, hidden_layer=[64, 32]).net)
-    print('net structure of StateCritic:', StateCritic(12, hidden_layer=[64, 32]).net)
-    print('net structure of DeterministicActor:', DeterministicActor(12, 2, hidden_layer=[64, 32]).net)
-    print('net structure of DiscreteStochasticActor:', DiscreteStochasticActor(12, 2, hidden_layer=[64, 32]).net)
-    print('net structure of ContinuousStochasticActor:', ContinuousStochasticActor(12, 2, hidden_layer=[64, 32]).net)
+    # some test case to see the structure of the network
+    s_dim, a_dim, h_layer = 12, 2, [64, 32]
+    print('QNet:', QNet(s_dim, a_dim, h_layer).net)
+    print('StateCritic:', StateCritic(s_dim, h_layer).net)
+    print('StateActionCritic:', StateActionCritic(s_dim, a_dim, h_layer).net)
+    print('DeterministicActor:', DeterministicActor(s_dim, a_dim, h_layer).net)
+    print('DiscreteStochasticActor:', DiscreteStochasticActor(s_dim, a_dim, h_layer).net)
+    print('ContinuousStochasticActor:', ContinuousStochasticActor(s_dim, a_dim, h_layer).net)

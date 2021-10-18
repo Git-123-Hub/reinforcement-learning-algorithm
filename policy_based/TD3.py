@@ -30,9 +30,6 @@ class TD3(Agent):
 
         self.replayMemory = replayMemory(self.config.get('memory_capacity', 20000), self.config.get('batch_size', 256))
 
-        self.max_action = self.env.action_space.high[0]
-        self.min_action = self.env.action_space.low[0]
-
     def run_reset(self):
         super(TD3, self).run_reset()
 
@@ -51,7 +48,8 @@ class TD3(Agent):
 
     def select_action(self):
         self.actor.eval()
-        self.action = self.actor(self.state).detach().squeeze(0).numpy()
+        state = torch.tensor(self.state).float().unsqueeze(0)
+        self.action = self.actor(state).detach().squeeze(0).numpy()
         self.actor.train()
 
         # gym environment will do the clip on action

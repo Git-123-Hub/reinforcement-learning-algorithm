@@ -30,7 +30,8 @@ class DDPG(Agent):
     def run_reset(self):
         super(DDPG, self).run_reset()
 
-        self.actor = self._actor(self.state_dim, self.action_dim, self.config.get('actor_hidden_layer'))
+        self.actor = self._actor(self.state_dim, self.action_dim, self.config.get('actor_hidden_layer'),
+                                 max_action=self.max_action)
         self.target_actor = deepcopy(self.actor)
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.config.get('learning_rate', 0.001))
 
@@ -40,7 +41,8 @@ class DDPG(Agent):
 
     def select_action(self):
         self.actor.eval()
-        self.action = self.actor(self.state).detach().squeeze(0).numpy()
+        state = torch.tensor(self.state).float().unsqueeze(0)
+        self.action = self.actor(state).detach().squeeze(0).numpy()
         self.actor.train()
 
         noise = np.random.normal(0, 1)
@@ -87,7 +89,8 @@ class DDPG(Agent):
 
     def load_policy(self, file):
         if self.actor is None:
-            self.actor = self._actor(self.state_dim, self.action_dim, self.config.get('actor_hidden_layer'))
+            self.actor = self._actor(self.state_dim, self.action_dim, self.config.get('actor_hidden_layer'),
+                                     max_action=self.max_action)
         self.actor.load_state_dict(torch.load(file))
         self.actor.eval()
 
