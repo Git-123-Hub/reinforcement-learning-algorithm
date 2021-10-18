@@ -11,9 +11,10 @@ from torch import nn
 
 
 class DuelingQNet(nn.Module):
+    dueling = True
+
     def __init__(self, state_dim=4, action_dim=2):
         super(DuelingQNet, self).__init__()
-        self.dueling = True
         self.base_layer = nn.Sequential(
             nn.Linear(state_dim, 64),
             nn.ReLU(),

@@ -36,15 +36,16 @@ class TD3(Agent):
     def run_reset(self):
         super(TD3, self).run_reset()
 
-        self.actor = self._actor(self.state_dim, self.action_dim, max_action=self.max_action)
+        self.actor = self._actor(self.state_dim, self.action_dim, self.config.get('actor_hidden_layer'),
+                                 max_action=self.max_action)
         self.target_actor = deepcopy(self.actor)
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.config.get('learning_rate', 0.001))
 
-        self.critic1 = self._critic(self.state_dim, self.action_dim)
+        self.critic1 = self._critic(self.state_dim, self.action_dim, self.config.get('critic_hidden_layer'))
         self.target_critic1 = deepcopy(self.critic1)
         self.critic1_optimizer = optim.Adam(self.critic1.parameters(), lr=self.config.get('learning_rate', 0.001))
 
-        self.critic2 = self._critic(self.state_dim, self.action_dim)
+        self.critic2 = self._critic(self.state_dim, self.action_dim, self.config.get('critic_hidden_layer'))
         self.target_critic2 = deepcopy(self.critic2)
         self.critic2_optimizer = optim.Adam(self.critic2.parameters(), lr=self.config.get('learning_rate', 0.001))
 
@@ -120,7 +121,9 @@ class TD3(Agent):
             torch.save(self.actor.state_dict(), os.path.join(self.policy_path, name))
 
     def load_policy(self, file):
-        if self.actor is None: self.actor = self._actor(self.state_dim, self.action_dim)
+        if self.actor is None:
+            self.actor = self._actor(self.state_dim, self.action_dim, self.config.get('actor_hidden_layer'),
+                                     max_action=self.max_action)
         self.actor.load_state_dict(torch.load(file))
         self.actor.eval()
 

@@ -21,22 +21,18 @@ class DQN(Agent):
         super(DQN, self).__init__(env, config)
 
         self._Q = Q_net  # constructor for Q network
-        self.Q = self._Q(self.state_dim, self.action_dim)
-        if hasattr(self.Q, 'dueling'):
+        if hasattr(Q_net, 'dueling'):
             self.dueling = True
             print(f'{Color.INFO}using the dueling network{Color.END}')
 
-        self.target_Q = copy.deepcopy(self.Q)
-        self.optimizer = optim.Adam(self.Q.parameters(),
-                                    lr=self.config.get('learning_rate', 0.001),
-                                    eps=1e-4)
+        self.Q, self.target_Q, self.optimizer = None, None, None
         self.replayMemory = replayMemory(self.config.get('memory_capacity', 20000), self.config.get('batch_size', 256))
 
         self._epsilon = None  # decay according to episode number during training
 
     def run_reset(self):
         super(DQN, self).run_reset()
-        self.Q = self._Q(self.state_dim, self.action_dim)
+        self.Q = self._Q(self.state_dim, self.action_dim, self.config.get('q_hidden_layer'))
         self.target_Q = copy.deepcopy(self.Q)
         self.optimizer = optim.Adam(self.Q.parameters(),
                                     lr=self.config.get('learning_rate', 0.01),
@@ -112,7 +108,7 @@ class DQN(Agent):
             torch.save(self.Q.state_dict(), os.path.join(self.policy_path, name))
 
     def load_policy(self, file):
-        if self.Q is None: self.Q = self._Q(self.state_dim, self.action_dim)
+        if self.Q is None: self.Q = self._Q(self.state_dim, self.action_dim, self.config.get('q_hidden_layer'))
         self.Q.load_state_dict(torch.load(file))
         self.Q.eval()
 

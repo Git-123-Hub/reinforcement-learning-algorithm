@@ -4,6 +4,7 @@
 # @Description: base class for all the network used in this project
 ############################################
 import abc
+from copy import deepcopy
 from typing import List
 
 import torch
@@ -24,6 +25,8 @@ class MLP(nn.Module, abc.ABC):
         super(MLP, self).__init__()
         if hidden_layer is None:
             hidden_layer = [32, 32]
+        else:  # consider that we will change `hidden_layer`, it's better to separate it out
+            hidden_layer = deepcopy(hidden_layer)
         modules = []
         hidden_layer.insert(0, input_size)
         hidden_layer.append(output_size)
@@ -47,7 +50,7 @@ class MLP(nn.Module, abc.ABC):
 class StateActionCritic(MLP):
     """approximator for Q-value, i.e. state-action value, Q(s,a)"""
 
-    def __init__(self, state_dim, action_dim, *, hidden_layer: List[int] = None):
+    def __init__(self, state_dim, action_dim, hidden_layer: List[int] = None):
         """
         net that takes state as input and output Q-value of each action
         :type hidden_layer: specify size of each hidden layer
@@ -62,7 +65,7 @@ class StateActionCritic(MLP):
 class StateCritic(MLP):
     """approximator of V-function, i.e. V(s)"""
 
-    def __init__(self, state_dim, *, hidden_layer=None):
+    def __init__(self, state_dim, hidden_layer=None):
         """net that takes state as input and output state-value of input state"""
         super(StateCritic, self).__init__(state_dim, 1, hidden_layer)
 
@@ -73,7 +76,7 @@ class StateCritic(MLP):
 class DeterministicActor(MLP):
     """actor with deterministic policy, i.e. action = policy(state)"""
 
-    def __init__(self, state_dim, action_dim, *, hidden_layer=None):
+    def __init__(self, state_dim, action_dim, hidden_layer=None):
         """deterministic policy which takes state as input and output an action with value"""
         super(DeterministicActor, self).__init__(state_dim, action_dim, hidden_layer)
 
@@ -84,7 +87,7 @@ class DeterministicActor(MLP):
 class DiscreteStochasticActor(MLP):
     """actor with stochastic policy in a `discrete` scenario where action is bounded to a range of specified value"""
 
-    def __init__(self, state_dim, action_dim, *, hidden_layer=None):
+    def __init__(self, state_dim, action_dim, hidden_layer=None):
         """stochastic policy which takes state as input and output probability of choosing each action"""
         super(DiscreteStochasticActor, self).__init__(state_dim, action_dim, hidden_layer, softmax=True)
 
@@ -99,7 +102,7 @@ class DiscreteStochasticActor(MLP):
 class ContinuousStochasticActor(MLP):
     """stochastic actor in a `continuous` scenario where action is sampled from Gaussian distribution constructed"""
 
-    def __init__(self, state_dim, action_dim, *, hidden_layer=None):
+    def __init__(self, state_dim, action_dim, hidden_layer=None):
         """stochastic actor that take state as input and output mean and log_std of the action distribution"""
         super(ContinuousStochasticActor, self).__init__(state_dim, hidden_layer[-1], hidden_layer[:-1])
 

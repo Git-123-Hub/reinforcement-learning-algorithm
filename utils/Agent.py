@@ -7,7 +7,6 @@ import datetime
 import os
 import pickle
 import random
-import sys
 import time
 import abc
 
@@ -91,7 +90,7 @@ class Agent(abc.ABC):
         # if provided, we use it to generate a list of random seeds, they will be used in each run
         if self._global_seed is not None:
             np.random.seed(self._global_seed)
-            self._seeds = np.random.randint(0, sys.maxsize, size=self.run_num, dtype=np.int64)
+            self._seeds = np.random.randint(0, 2 ** 32 - 1, size=self.run_num, dtype=np.int64)
         # if not provided, then each run of the training use random seed 'None'
 
     def set_random_seed(self, *, more_random: bool = False):

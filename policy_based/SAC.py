@@ -52,14 +52,15 @@ class SAC(Agent):
     def run_reset(self):
         super(SAC, self).run_reset()
 
-        self.actor = self._actor(self.state_dim, self.action_dim)
+        self.actor = self._actor(self.state_dim, self.action_dim, self.config.get('actor_hidden_layer'))
         self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=self.config.get('learning_rate', 1e-4))
 
-        self.critic1 = self._critic(self.state_dim, self.action_dim)
+        # todo: check if the two critic are the same at the first time
+        self.critic1 = self._critic(self.state_dim, self.action_dim, self.config.get('critic_hidden_layer'))
         self.target_critic1 = deepcopy(self.critic1)
         self.critic1_optimizer = torch.optim.Adam(self.critic1.parameters(), lr=self.config.get('learning_rate', 1e-4))
 
-        self.critic2 = self._critic(self.state_dim, self.action_dim)
+        self.critic2 = self._critic(self.state_dim, self.action_dim, self.config.get('critic_hidden_layer'))
         self.target_critic2 = deepcopy(self.critic2)
         self.critic2_optimizer = torch.optim.Adam(self.critic2.parameters(), lr=self.config.get('learning_rate', 1e-4))
 
@@ -146,7 +147,8 @@ class SAC(Agent):
             torch.save(self.actor.state_dict(), os.path.join(self.policy_path, name))
 
     def load_policy(self, file):
-        if self.actor is None: self.actor = self._actor(self.state_dim, self.action_dim)
+        if self.actor is None:
+            self.actor = self._actor(self.state_dim, self.action_dim, self.config.get('actor_hidden_layer'))
         self.actor.load_state_dict(torch.load(file))
         self.actor.eval()
 
