@@ -87,7 +87,8 @@ class SAC(Agent):
     def select_action(self):
         """sample action from the policy"""
         self.actor.eval()
-        self.action = self.resample(self.state, False)
+        state = torch.tensor(self.state).float().unsqueeze(0)
+        self.action = self.resample(state, False)
         self.actor.train()
 
     def learn(self):

@@ -18,8 +18,8 @@ if __name__ == '__main__':
     config = get_base_config()
 
     # base config
-    config['results'] = './Acrobot-results'
-    config['policy'] = './Acrobot-policy'
+    config['results'] = './Acrobot_results'
+    config['policy'] = './Acrobot_policy'
     config['seed'] = 756170127
     config['run_num'] = 3
     config['episode_num'] = 500

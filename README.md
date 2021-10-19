@@ -49,6 +49,9 @@
 ![Acrobot-v1](results/Acrobot-v1-online.png)
 
 ### Pendulum-v0
+> Note that there is no goal for Pendulum-v0,
+> but as you can see in the result,
+> the agent did learn something
 
 ![Pendulum-v0](results/Pendulum-v0-online.png)
 

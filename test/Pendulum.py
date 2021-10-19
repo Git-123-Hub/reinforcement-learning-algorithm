@@ -4,52 +4,13 @@
 # @Description: solve problem Pendulum using rl algorithm
 ############################################
 import gym
-import numpy as np
-import torch
-from torch import nn
 
 from policy_based import DDPG, TD3
 from utils.const import get_base_config
-
-
-class Actor(nn.Module):
-    def __init__(self, state_dim, action_dim, max_action=1):
-        super(Actor, self).__init__()
-        self.fc = nn.Sequential(
-            nn.Linear(state_dim, 128),
-            nn.ReLU(),
-            nn.Linear(128, 64),
-            nn.ReLU(),
-            nn.Linear(64, action_dim),
-        )
-
-    def forward(self, state):
-        if isinstance(state, np.ndarray):
-            state = torch.tensor(state).float().unsqueeze(0)
-        return self.fc(state)
-
-
-class Critic(nn.Module):
-    def __init__(self, state_dim, action_dim):
-        super(Critic, self).__init__()
-        self.fc = nn.Sequential(
-            nn.Linear(state_dim + action_dim, 128),
-            nn.ReLU(),
-            nn.Linear(128, 64),
-            nn.ReLU(),
-            nn.Linear(64, 1)
-        )
-
-    def forward(self, state, action):
-        if isinstance(state, np.ndarray):
-            state = torch.tensor(state).float().unsqueeze(0)
-        if isinstance(action, np.ndarray):
-            action = torch.tensor(action).float().unsqueeze(0)
-        return self.fc(torch.cat([state, action], 1))
-
+from utils.model import DeterministicActor, StateActionCritic
 
 if __name__ == '__main__':
-    # NOTE that this is no goal for Pendulum-v0, but as you can see in the result, the agent did learn something
+    # NOTE that there is no goal for Pendulum-v0, but as you can see in the result, the agent did learn something
     env = gym.make('Pendulum-v0')
     config = get_base_config()
     config['results'] = './Pendulum_results'
@@ -66,7 +27,9 @@ if __name__ == '__main__':
 
     config['learning_rate'] = 0.0005
 
-    agent = DDPG(env, Actor, Critic, config)
+    config['actor_hidden_layer'] = [128, 64]
+    config['critic_hidden_layer'] = [128, 64]
+    agent = DDPG(env, DeterministicActor, StateActionCritic, config)
     agent.train()
     # agent.test()
 
@@ -75,6 +38,6 @@ if __name__ == '__main__':
     config['noise_clip'] = 0.5
     config['noise_factor'] = 0.2
 
-    agent = TD3(env, Actor, Critic, config)
+    agent = TD3(env, DeterministicActor, StateActionCritic, config)
     agent.train()
     # agent.test()
