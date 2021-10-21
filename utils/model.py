@@ -84,7 +84,9 @@ class StateActionCritic(MLP):
 
     def forward(self, state, action):
         """return approximate value for Q(s,a)"""
-        return self.net(torch.cat([state, action], 1))
+        # input shape of the net: [batch_size, state_dim + action_dim], output shape: [batch_size, 1]
+        # so squeeze(dim=1) is needed to make sure each of the (state, action) pair corresponds to one critic value
+        return self.net(torch.cat([state, action], dim=1)).squeeze(dim=1)
 
 
 class DeterministicActor(MLP):
@@ -126,6 +128,7 @@ class ContinuousStochasticActor(MLP):
 
     def forward(self, state):
         """The action is sampled from the Gaussian distribution using mean and log_std from the network"""
+        # NOTE that `forward()` returns a distribution, so there is no need to multiply by max_action here
         base = self.net(state)
         mean, log_std = self.mean_output(base).squeeze(0), self.log_std_output(base).squeeze(0)
         log_std.clip_(-20, 2)
