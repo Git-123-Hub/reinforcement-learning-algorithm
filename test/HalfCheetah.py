@@ -31,7 +31,7 @@ if __name__ == '__main__':
     # it seems that DDPG can't solve this problem, but it can learn something
     agent = DDPG(env, DeterministicActor, StateActionCritic, config)
     agent.train()
-    agent.test()
+    # agent.test()
 
     config['update_interval'] = 2
     config['noise_std'] = 1

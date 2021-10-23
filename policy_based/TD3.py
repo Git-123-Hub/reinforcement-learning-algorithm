@@ -56,7 +56,6 @@ class TD3(Agent):
         self.action += self.get_action_noise(self.action.size)
 
     def get_action_noise(self, size):
-        # todo: maybe two different way of getting noise
         noise_mean = self.config.get('noise_mean', 0)
         noise_std = self.config.get('noise_std', 1) * self.max_action
         noise_clip = self.config.get('noise_clip', 1)

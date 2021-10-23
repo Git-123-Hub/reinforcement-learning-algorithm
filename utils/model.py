@@ -84,9 +84,7 @@ class StateActionCritic(MLP):
 
     def forward(self, state, action):
         """return approximate value for Q(s,a)"""
-        # input shape of the net: [batch_size, state_dim + action_dim], output shape: [batch_size, 1]
-        # so squeeze(dim=1) is needed to make sure each of the (state, action) pair corresponds to one critic value
-        return self.net(torch.cat([state, action], dim=1)).squeeze(dim=1)
+        return self.net(torch.cat([state, action], dim=1))
 
 
 class DeterministicActor(MLP):

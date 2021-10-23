@@ -58,7 +58,6 @@ class prioritizedMemory(replayMemory):
             experiences[i] = self.memory[index]
             priorities[i] = priority
         sample_probabilities = priorities / self.priority.sum
-        # todo: what's the meaning of N: capacity or current size
         IS_weights = np.power(self.capacity * sample_probabilities, -self.beta)
         IS_weights /= IS_weights.max()
         return transfer_experience(experiences), IS_weights

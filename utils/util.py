@@ -119,7 +119,7 @@ def transfer_experience(experiences):
     """
     # first stack the sampled experiences vertically,
     experiences = np.vstack(experiences).transpose()
-    # so that each row represents a tuple for experience, and each row represents same component(s,a,r,d,s')
+    # so that each row represents a tuple for experience with the same component(s,a,r,d,s')
     # after transpose, states are transferred to the first row, actions on the second row...
 
     # transfer array to tensor to pass the the network

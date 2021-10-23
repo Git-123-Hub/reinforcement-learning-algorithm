@@ -95,5 +95,4 @@ class DDPG(Agent):
         self.actor.eval()
 
     def test_action(self, state):
-        # todo: no noise added, don't know if this is right
         return self.actor(state).detach().squeeze(0).numpy()

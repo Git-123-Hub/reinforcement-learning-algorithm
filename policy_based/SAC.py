@@ -55,7 +55,6 @@ class SAC(Agent):
         self.actor = self._actor(self.state_dim, self.action_dim, self.config.get('actor_hidden_layer'))
         self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=self.config.get('learning_rate', 1e-4))
 
-        # todo: check if the two critic are the same at the first time
         self.critic1 = self._critic(self.state_dim, self.action_dim, self.config.get('critic_hidden_layer'))
         self.target_critic1 = deepcopy(self.critic1)
         self.critic1_optimizer = torch.optim.Adam(self.critic1.parameters(), lr=self.config.get('learning_rate', 1e-4))
@@ -63,10 +62,6 @@ class SAC(Agent):
         self.critic2 = self._critic(self.state_dim, self.action_dim, self.config.get('critic_hidden_layer'))
         self.target_critic2 = deepcopy(self.critic2)
         self.critic2_optimizer = torch.optim.Adam(self.critic2.parameters(), lr=self.config.get('learning_rate', 1e-4))
-
-        # freeze target network
-        for p in self.target_critic1.parameters(): p.requires_grad = False
-        for p in self.target_critic2.parameters(): p.requires_grad = False
 
     def resample(self, state, get_log_prob=True):
         """sample action on state from the policy, and calculate the log-prob using reparameterization trick"""
@@ -86,7 +81,8 @@ class SAC(Agent):
         # used in spinning-up(https://github.com/openai/spinningup/blob/master/spinup/algos/pytorch/sac/core.py#L60)
         # proof: (https://github.com/openai/spinningup/issues/279)
         log_prob -= 2 * (np.log(2) - mu - F.softplus(-2 * mu))
-        return action, log_prob.sum(dim=1)
+        return action, log_prob.sum(dim=1, keepdim=True)
+        # NOTE: use `keepdim` to keep the shape of log_prob to [batch_size, 1]
 
     def select_action(self):
         """sample action from the policy"""
@@ -108,8 +104,7 @@ class SAC(Agent):
             soft_Q_value_2 = self.target_critic2(next_states, next_actions)
             soft_state_value = torch.min(soft_Q_value_1, soft_Q_value_2) - self.alpha * log_prob  # V(s_t+1)
             # calculate target value for critic
-            target_value = rewards.squeeze(dim=1) + (1 - dones.squeeze(dim=1)) * self.config.get('discount_factor',
-                                                                                                 0.99) * soft_state_value
+            target_value = rewards + (1 - dones) * self.config.get('discount_factor', 0.99) * soft_state_value
 
         # update critic_1
         current_soft_Q_value_1 = self.critic1(states, actions)
@@ -126,8 +121,6 @@ class SAC(Agent):
         self.critic2_optimizer.zero_grad()
         loss.backward()
         self.critic2_optimizer.step()
-
-        # todo: freeze parameter of critic
 
         # b) update policy
         actions, log_prob = self.resample(states)  # NOTE that `actions` are resampled, not from replayMemory

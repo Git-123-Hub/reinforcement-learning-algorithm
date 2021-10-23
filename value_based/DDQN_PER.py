@@ -12,10 +12,8 @@ import torch
 class DDQN_PER(DDQN):
     def __init__(self, env, Q_net, config):
         super(DDQN_PER, self).__init__(env, Q_net, config)
-        # todo: how to write configure
-        self.replayMemory = prioritizedMemory(
-            self.config['memory_capacity'],
-            self.config['batch_size'], self.config['alpha'], self.config['beta'])
+        self.replayMemory = prioritizedMemory(self.config['memory_capacity'], self.config['batch_size'],
+                                              self.config['alpha'], self.config['beta'])
 
     def episode_reset(self):
         """implement parameter(alpha, beta) decay before episode starts"""
