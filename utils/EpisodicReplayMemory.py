@@ -1,0 +1,53 @@
+############################################
+# @Author: Git-123-Hub
+# @Date: 2021/10/25
+# @Description: replay memory that handle trajectory of one episode each time
+############################################
+import numpy as np
+import torch
+
+from utils.util import discount_sum
+
+
+class EpisodicReplayMemory:
+    """ data structure of replay memory that only stores the trajectory of current episode """
+
+    def __init__(self, gamma):
+        self.gamma = gamma
+        # following variables should be specified when adding
+        self.states, self.actions, self.rewards, self.state_values, self.log_probs = [], [], [], [], []
+        self.advantages, self.discount_rewards = [], []  # these variables are calculated after episode terminates
+
+    def reset(self):
+        """clear all the experience that has been stored"""
+        self.states, self.actions, self.rewards, self.state_values, self.log_probs = [], [], [], [], []
+        self.advantages, self.discount_rewards = [], []
+
+    def add(self, experience):
+        """
+        store the experience at `episode_trajectory`
+        :param experience: each experience is a tuple (state, action, reward, state_value, log_prob)
+        """
+        state, action, reward, state_value, log_prob = experience
+        self.states.append(state)
+        self.actions.append(action)
+        self.rewards.append(reward)
+        self.state_values.append(state_value)
+        self.log_probs.append(log_prob)
+
+    def fetch(self):
+        """fetch all the data in the `memory` and transfer them to tensor for learning"""
+        # todo: debug here
+        self.discount_rewards = discount_sum(self.rewards, self.gamma)
+        # todo: calculate advantage using GAE
+        # todo: check data dimension
+        states = torch.from_numpy(np.vstack(self.states)).float()
+        actions = torch.from_numpy(np.vstack(self.actions)).float()
+        rewards = torch.from_numpy(np.vstack(self.rewards)).float()
+        state_values = torch.from_numpy(np.vstack(self.state_values)).float()
+        log_probs = torch.from_numpy(np.vstack(self.log_probs)).float()
+        discount_rewards = torch.from_numpy(np.vstack(self.discount_rewards)).float()
+        advantages = discount_rewards - state_values
+
+        self.reset()
+        return states, actions, rewards, state_values, log_probs, advantages, discount_rewards

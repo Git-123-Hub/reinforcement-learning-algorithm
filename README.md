@@ -15,7 +15,7 @@
   [Dueling Network Architectures for Deep Reinforcement Learning](https://arxiv.org/abs/1511.06581)
 - DDQN with prioritized experience replay
   [Prioritized Experience Replay](https://arxiv.org/abs/1511.05952)
-- REINFORCE(Monte-Carlo Policy Gradient)
+- REINFORCE(Monte-Carlo Policy Gradient, Vanilla Policy Gradient)
 - REINFORCE with BASELINE
 - DDPG
   [Continuous control with deep reinforcement learning](https://arxiv.org/abs/1509.02971)
@@ -25,6 +25,7 @@
   [Soft Actor-Critic: Off-Policy Maximum Entropy Deep Reinforcement Learning with a Stochastic Actor](https://arxiv.org/abs/1801.01290)
   ,
   [Soft Actor-Critic Algorithms and Applications](https://arxiv.org/abs/1812.05905)
+- PPO [Proximal Policy Optimization Algorithms](https://arxiv.org/abs/1707.06347)
 
 # online result
 

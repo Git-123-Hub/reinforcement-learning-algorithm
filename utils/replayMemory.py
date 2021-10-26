@@ -52,7 +52,3 @@ class replayMemory:
     def ready(self):
         """return a bool indicate whether this ReplayMemory is ready to be sampled"""
         return self._size >= self.batch_size
-
-
-
-

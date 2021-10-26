@@ -98,6 +98,10 @@ def get_base_config():
         'policy_hidden_layer': [128, 128],
         'actor_hidden_layer': [128, 128],
         'critic_hidden_layer': [128, 128],
+
+        # ##### parameters for PPO ##### #
+        'training_epoch': 50,
+        'clip_ratio': 0.2,
     }
 
 
