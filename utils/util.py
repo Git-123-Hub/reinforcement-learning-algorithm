@@ -130,3 +130,37 @@ def transfer_experience(experiences):
     next_states = torch.from_numpy(np.vstack(experiences[3])).float()
     dones = torch.from_numpy(np.vstack(experiences[4])).float()
     return states, actions, rewards, next_states, dones
+
+
+def discount_sum(x, gamma, *, normalize=False):
+    """
+    calculate the discounted cumsum of input vector x
+    :param x: input vector: [x0, x1, x2]
+    :param gamma: discount factor
+    :param normalize: keyword argument determine whether normalize the output vector with mean and std
+    :return: output vector: [x0 + gamma * x1 + gamma^2 * x2, x1 + gamma * x2, x2]
+    """
+    result = np.zeros_like(x, dtype=float)
+    R = 0
+    for index in reversed(range(len(x))):
+        R = x[index] + gamma * R
+        result[index] = R
+
+    if normalize:
+        eps = np.finfo(np.float32).eps.item()  # tiny non-negative number
+        result = (result - result.mean()) / (result.std() + eps)  # normalize
+
+    return result
+
+
+if __name__ == '__main__':
+    # test function discounted_sum()
+    x_ = [1, 2, 3]
+    gamma_ = 0.99
+    y = [
+        x_[0] + x_[1] * gamma_ + x_[2] * gamma_ ** 2,
+        x_[1] + x_[2] * gamma_,
+        x_[2]
+    ]
+    print(discount_sum(x_, gamma_))
+    np.testing.assert_almost_equal(discount_sum(x_, gamma_), y)

@@ -4,16 +4,14 @@
 # @Description: implementation of REINFORCE_with_BASELINE
 ############################################
 
-# Note that I use parameterized value function as Critic
-
 import os
 
-import numpy as np
 import torch
-from torch import optim
 import torch.nn.functional as F
+from torch import optim
 
 from utils.Agent import Agent
+from utils.util import discount_sum
 
 
 # cite from "Reinforcement Learning An Introduction" Sec 13.5:
@@ -25,6 +23,7 @@ from utils.Agent import Agent
 # but only as a baseline for the state whose estimate is being updated.
 # This is a useful distinction, for only through bootstrapping do we introduce bias and
 # an asymptotic dependence on the quality of the function approximation.
+
 
 class REINFORCE_BASELINE(Agent):
     def __init__(self, env, actor, critic, config):
@@ -66,15 +65,7 @@ class REINFORCE_BASELINE(Agent):
         if not self.done:  # only learn when an episode finishes
             return
 
-        # calculate the sum of discounted reward using rewards returned from the environment
-        returns = np.zeros_like(self.episode_reward)
-        R = 0
-        for index in reversed(range(len(self.episode_reward))):
-            R = self.episode_reward[index] + self.config.get('discount_factor', 0.99) * R
-            returns[index] = R
-        eps = np.finfo(np.float32).eps.item()  # tiny non-negative number
-        returns = (returns - returns.mean()) / (returns.std() + eps)
-        returns = torch.tensor(returns, dtype=torch.float)
+        returns = discount_sum(self.episode_reward, self.config.get('discount_factor', 0.99), normalize=True)
 
         # update actor
         advantage_list = returns - torch.cat(self.episode_state_value).squeeze()

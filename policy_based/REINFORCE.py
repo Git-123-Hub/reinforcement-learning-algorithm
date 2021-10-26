@@ -5,11 +5,11 @@
 ############################################
 import os
 
-import numpy as np
 import torch
 from torch import optim
 
 from utils import Agent
+from utils.util import discount_sum
 
 
 class REINFORCE(Agent):
@@ -42,14 +42,8 @@ class REINFORCE(Agent):
 
         if not self.done:  # only learn when an episode finishes
             return
-        returns = np.zeros_like(self.episode_reward)
-        R = 0
-        for index in reversed(range(len(self.episode_reward))):
-            R = self.episode_reward[index] + self.config.get('discount_factor', 0.99) * R
-            returns[index] = R
 
-        eps = np.finfo(np.float32).eps.item()  # tiny non-negative number
-        returns = (returns - returns.mean()) / (returns.std() + eps)  # normalize
+        returns = discount_sum(self.episode_reward, self.config.get('discount_factor', 0.99), normalize=True)
 
         # update policy
         loss = torch.cat(self.episode_log_prob) * torch.from_numpy(-returns)
