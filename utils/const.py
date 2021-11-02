@@ -5,6 +5,7 @@
 ############################################
 
 import matplotlib.pyplot as plt
+from torch import nn
 
 
 class Color:
@@ -99,6 +100,11 @@ def get_base_config():
         'policy_hidden_layer': [128, 128],
         'actor_hidden_layer': [128, 128],
         'critic_hidden_layer': [128, 128],
+        # activation of network
+        'q_activation': nn.ReLU(),
+        'policy_activation': nn.ReLU(),
+        'actor_activation': nn.ReLU(),
+        'critic_activation': nn.ReLU(),
 
         # ##### parameters for PPO ##### #
         'training_epoch': 50,

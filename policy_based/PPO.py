@@ -22,7 +22,6 @@ class PPO(Agent):
 
         self._actor = actor
         self.actor, self.actor_optimizer = None, None
-        self.old_actor = None
 
         self._critic = critic
         self.critic, self.critic_optimizer = None, None
@@ -32,10 +31,11 @@ class PPO(Agent):
     def run_reset(self):
         super().run_reset()
         self.actor = self._actor(self.state_dim, self.action_dim, self.config.get('actor_hidden_layer'))
-        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.config.get('learning_rate', 0.001))
+        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.config.get('learning_rate', 1e-3))
 
-        self.critic = self._critic(self.state_dim, self.config.get('critic_hidden_layer'))
-        self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=self.config.get('learning_rate', 0.001))
+        self.critic = self._critic(self.state_dim, self.config.get('critic_hidden_layer'),
+                                   activation=self.config.get('critic_activation'))
+        self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=self.config.get('learning_rate', 1e-3))
 
     def select_action(self):
         # todo: with torch.no_grad()
@@ -43,11 +43,9 @@ class PPO(Agent):
             state = torch.tensor(self.state).float().unsqueeze(0)
             action_dist = self.actor(state)
             self.action = action_dist.sample()
-            # todo: log_prob after sum() is just a tensor without a shape
             self.log_prob = action_dist.log_prob(self.action).sum()
             self.action = self.action.numpy()
-            # todo: shape of the state_value, should i add dim=1, or just squeeze()
-            self.state_value = self.critic(state).squeeze(dim=0)
+            self.state_value = self.critic(state).squeeze(dim=0)  # shape: torch.Size([1])
 
     def save_experience(self):
         """during the procedure of training, only store (state)"""
@@ -79,6 +77,7 @@ class PPO(Agent):
 
             # update critic
             state_values = self.critic(states)
+            # state_values = (state_values - state_values.mean()) / (state_values.std() + 1e-7)
             loss = F.mse_loss(state_values, discount_rewards, reduction='mean')
             self.logger.info(f'critic loss: {loss.item()}')
             self.critic_optimizer.zero_grad()
