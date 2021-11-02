@@ -148,7 +148,7 @@ def discount_sum(x, gamma, *, normalize=False):
 
     if normalize:
         eps = np.finfo(np.float32).eps.item()  # tiny non-negative number
-        result = (result - result.mean()) / (result.std() + eps)  # normalize
+        result = (result - result.mean()) / (result.std() + eps)
 
     return result
 

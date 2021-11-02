@@ -71,12 +71,14 @@ class REINFORCE_BASELINE(Agent):
         advantage_list = returns - torch.cat(self.episode_state_value).squeeze()
         policy_loss_list = torch.cat(self.episode_log_prob) * -advantage_list.detach()  # note the negative sign
         loss = policy_loss_list.sum()
+        self.logger.info(f'actor loss: {loss.item()}')
         self.actor_optimizer.zero_grad()
         loss.backward()
         self.actor_optimizer.step()
 
         # update critic
         loss = F.mse_loss(torch.cat(self.episode_state_value).squeeze(), returns, reduction='sum').float()
+        self.logger.info(f'critic loss: {loss.item()}')
         self.critic_optimizer.zero_grad()
         loss.backward()
         self.critic_optimizer.step()

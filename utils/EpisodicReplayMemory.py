@@ -3,6 +3,8 @@
 # @Date: 2021/10/25
 # @Description: replay memory that handle trajectory of one episode each time
 ############################################
+from copy import deepcopy
+
 import numpy as np
 import torch
 
@@ -38,7 +40,7 @@ class EpisodicReplayMemory:
     def fetch(self):
         """fetch all the data in the `memory` and transfer them to tensor for learning"""
         # todo: debug here
-        self.discount_rewards = discount_sum(self.rewards, self.gamma)
+        self.discount_rewards = discount_sum(self.rewards, self.gamma, normalize=True)
         # todo: calculate advantage using GAE
         # todo: check data dimension
         states = torch.from_numpy(np.vstack(self.states)).float()
@@ -47,7 +49,19 @@ class EpisodicReplayMemory:
         state_values = torch.from_numpy(np.vstack(self.state_values)).float()
         log_probs = torch.from_numpy(np.vstack(self.log_probs)).float()
         discount_rewards = torch.from_numpy(np.vstack(self.discount_rewards)).float()
-        advantages = discount_rewards - state_values
+        # ?? a) calculate advantage
+        # advantages = discount_rewards - state_values
+        # ?? b) GAE
+        gamma, lam = 0.99, 0.95
+        r = deepcopy(self.rewards)
+        r.append(0)
+        v = deepcopy(self.state_values)
+        v.append(0)
+        deltas = np.array(r)[:-1] + gamma * np.array(v)[1:] - np.array(v)[:-1]
+        advantages = discount_sum(deltas, gamma * lam)
+        advantages = torch.from_numpy(np.vstack(advantages)).float()
+
+        advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-7)
 
         self.reset()
         return states, actions, rewards, state_values, log_probs, advantages, discount_rewards
