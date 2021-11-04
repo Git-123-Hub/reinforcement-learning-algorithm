@@ -114,7 +114,7 @@ def get_base_config():
 
 # default goal for some env whose goal is None
 DefaultGoal = {
-    'Pendulum-v0': -100,
+    'Pendulum-v0': -165,
     'Humanoid‐v3': None,
     'HumanoidStandup‐v2': None,
     'Walker2d‐v3': None,

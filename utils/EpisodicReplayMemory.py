@@ -39,15 +39,12 @@ class EpisodicReplayMemory:
 
     def fetch(self):
         """fetch all the data in the `memory` and transfer them to tensor for learning"""
-        # todo: debug here
-        self.discount_rewards = discount_sum(self.rewards, self.gamma, normalize=True)
-        # todo: calculate advantage using GAE
-        # todo: check data dimension
         states = torch.from_numpy(np.vstack(self.states)).float()
         actions = torch.from_numpy(np.vstack(self.actions)).float()
         rewards = torch.from_numpy(np.vstack(self.rewards)).float()
         state_values = torch.from_numpy(np.vstack(self.state_values)).float()
         log_probs = torch.from_numpy(np.vstack(self.log_probs)).float()
+        self.discount_rewards = discount_sum(self.rewards, self.gamma)
         discount_rewards = torch.from_numpy(np.vstack(self.discount_rewards)).float()
         # ?? a) calculate advantage
         # advantages = discount_rewards - state_values

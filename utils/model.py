@@ -28,6 +28,8 @@ class MLP(nn.Module, abc.ABC):
         super(MLP, self).__init__()
         if hidden_layer is None:
             hidden_layer = [32, 32]
+        else:  # consider that we will change `hidden_layer`, it's better to separate it out
+            hidden_layer = deepcopy(hidden_layer)
         modules = []
         hidden_layer.insert(0, input_size)
         hidden_layer.append(output_size)
@@ -159,17 +161,19 @@ class ContinuousStochasticActorFixStd(nn.Module):
         for i in range(len(hidden_layer) - 1):
             modules.append(nn.Linear(hidden_layer[i], hidden_layer[i + 1]))
             if i != len(hidden_layer) - 2:  # the last layer don't need an activation function
-                modules.append(nn.Tanh())
+                modules.append(nn.ReLU())
         self.net = nn.Sequential(*modules)
 
-        log_std = -0.5 * np.ones(action_dim, dtype=np.float32)
-        log_std = torch.tensor(log_std)
-        self.std = torch.exp(log_std)
+        # log_std = -0.5 * np.ones(action_dim, dtype=np.float32)
+        # log_std = torch.tensor(log_std)
+        # self.std = torch.exp(log_std)
+
+        self.std = torch.tensor(0.5 * np.ones(action_dim, dtype=np.float32))
 
     def forward(self, state):
         """The action is sampled from the Gaussian distribution using mean and log_std from the network"""
         # NOTE that `forward()` returns a distribution, so there is no need to multiply by max_action here
-        mean = self.net(state)
+        mean = self.net(state).squeeze(0)
         return Normal(mean, self.std)
 
 
