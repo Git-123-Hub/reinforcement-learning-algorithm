@@ -4,10 +4,12 @@
 # @Description: test the performance of RL algorithm on problem HalfCheetah-v3
 ############################################
 import gym
+from torch import nn
 
-from policy_based import DDPG, TD3, SAC
+from policy_based import DDPG, TD3, SAC, PPO
 from utils.const import get_base_config
-from utils.model import DeterministicActor, StateActionCritic, ContinuousStochasticActor
+from utils.model import DeterministicActor, StateActionCritic, ContinuousStochasticActor, StateCritic, \
+    ContinuousStochasticActorFixStd
 
 if __name__ == '__main__':
     env = gym.make('HalfCheetah-v3')
@@ -41,8 +43,19 @@ if __name__ == '__main__':
     agent.train()
     # agent.test(render=True)
 
-    config['seed'] = 4823231
+    # config['seed'] = 4823231
     config['learning_rate'] = 1e-3
     config['actor_hidden_layer'] = [256, 256]
     agent = SAC(env, ContinuousStochasticActor, StateActionCritic, config)
+    agent.train()
+
+    # ! this PPO can learn something, but not good enough to solve this problem
+    config['critic_activation'] = nn.Tanh()
+    config['learning_rate'] = 5e-4
+    config['training_epoch'] = 10  # todo: try 10
+    config['episode_num'] = 500 * 60
+    # config['render'] = 'train'
+    print(config['training_epoch'], config['episode_num'])
+    agent = PPO(env, ContinuousStochasticActorFixStd, StateCritic, config)
+    # agent = PPO(env, ContinuousStochasticActor, StateCritic, config)
     agent.train()

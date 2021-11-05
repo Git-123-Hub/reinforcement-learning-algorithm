@@ -5,9 +5,10 @@
 ############################################
 import gym
 
-from policy_based import DDPG, TD3
+from policy_based import DDPG, TD3, PPO
 from utils.const import get_base_config
-from utils.model import DeterministicActor, StateActionCritic
+from utils.model import DeterministicActor, StateActionCritic, ContinuousStochasticActor, StateCritic, \
+    ContinuousStochasticActorFixStd
 
 if __name__ == '__main__':
     # NOTE that there is no goal for Pendulum-v0, but as you can see in the result, the agent did learn something
@@ -41,3 +42,13 @@ if __name__ == '__main__':
     agent = TD3(env, DeterministicActor, StateActionCritic, config)
     agent.train()
     # agent.test()
+
+    config['actor_hidden_layer'] = [128, 64]
+    config['critic_hidden_layer'] = [128, 64]
+    config['learning_rate'] = 3e-4
+
+    config['training_epoch'] = 5
+    config['episode_num'] = 300 * 30
+    # agent = PPO(env, ContinuousStochasticActor, StateCritic, config)
+    agent = PPO(env, ContinuousStochasticActorFixStd, StateCritic, config)
+    agent.train()
