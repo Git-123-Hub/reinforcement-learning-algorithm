@@ -18,10 +18,10 @@ class sumTree:
         initial the tree with `capacity`
         :param capacity: number of leaf nodes
         """
-        self.capacity = capacity
+        self.capacity = int(capacity)
 
         # an array to store all the nodes(data) of the tree
-        self.tree = np.zeros(2 * capacity - 1)
+        self.tree = np.zeros(2 * self.capacity - 1)
         # if a binary tree has n leaf nodes, then the total number of nodes of the tree is 2*n-1
 
         self._length = 0
