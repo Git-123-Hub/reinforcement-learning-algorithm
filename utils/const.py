@@ -30,6 +30,7 @@ class Color:
     TD3 = cmap(6 / 10)
     SAC = cmap(7 / 10)
     PPO = cmap(8 / 10)
+    A3C = cmap(9 / 10)
 
     # color for different line
     REWARD = cmap(0 / 10)

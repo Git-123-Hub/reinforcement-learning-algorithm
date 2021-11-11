@@ -18,7 +18,7 @@ class PPO(Agent):
     def __init__(self, env: gym.Env, actor, critic, config: dict):
         super().__init__(env, config)
         self.state_value, self.log_prob = None, None
-        # these two value should also be store in replay memory for learning
+        # these two value should also be stored in replay memory for learning
 
         self._actor = actor
         self.actor, self.actor_optimizer = None, None

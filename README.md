@@ -26,6 +26,7 @@
   ,
   [Soft Actor-Critic Algorithms and Applications](https://arxiv.org/abs/1812.05905)
 - PPO [Proximal Policy Optimization Algorithms](https://arxiv.org/abs/1707.06347)
+- A3C [Asynchronous Methods for Deep Reinforcement Learning](https://arxiv.org/abs/1602.01783)
 
 # online result
 
@@ -110,3 +111,4 @@
 - [Author's PyTorch implementation of TD3](https://github.com/sfujim/TD3)
 - [RLkit]((https://github.com/rail-berkeley/rlkit))
 - [Spinning-Up](https://spinningup.openai.com/en/latest/)
+- [pytorch-A3C by MorvanZhou](https://github.com/MorvanZhou/pytorch-A3C)

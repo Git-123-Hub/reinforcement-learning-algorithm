@@ -42,19 +42,28 @@ class EpisodicReplayMemory:
         states = torch.from_numpy(np.vstack(self.states)).float()
         actions = torch.from_numpy(np.vstack(self.actions)).float()
         rewards = torch.from_numpy(np.vstack(self.rewards)).float()
-        state_values = torch.from_numpy(np.vstack(self.state_values)).float()
-        log_probs = torch.from_numpy(np.vstack(self.log_probs)).float()
+        # state_values = torch.from_numpy(np.vstack(self.state_values)).float()
+        # log_probs = torch.from_numpy(np.vstack(self.log_probs)).float()
+        state_values = torch.stack(self.state_values).float()
+        log_probs = torch.stack(self.log_probs).float()
+
         self.discount_rewards = discount_sum(self.rewards, self.gamma)
-        discount_rewards = torch.from_numpy(np.vstack(self.discount_rewards)).float()
+        # discount_rewards = torch.from_numpy(np.vstack(self.discount_rewards)).float()
+        discount_rewards = torch.tensor(self.discount_rewards).float()
         # ?? a) calculate advantage
         # advantages = discount_rewards - state_values
         # ?? b) GAE
         gamma, lam = 0.99, 0.95
-        r = deepcopy(self.rewards)
-        r.append(0)
-        v = deepcopy(self.state_values)
-        v.append(0)
-        deltas = np.array(r)[:-1] + gamma * np.array(v)[1:] - np.array(v)[:-1]
+        # r = deepcopy(self.rewards)
+        # r.append(0)
+        # v = deepcopy(self.state_values)
+        # v.append(0)
+
+        self.rewards.append(0)
+        self.state_values.append(0)
+
+        deltas = np.array(self.rewards)[:-1] + gamma * np.array(self.state_values)[1:] - np.array(self.state_values)[
+                                                                                         :-1]
         advantages = discount_sum(deltas, gamma * lam)
         advantages = torch.from_numpy(np.vstack(advantages)).float()
 
