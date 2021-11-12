@@ -32,15 +32,6 @@ class A3CWorker(mp.Process):
         # reward of the current episode, this value will be pushed to `self.global_episode_rewards`
         # when episode terminates, and will finally be used to plot reward with respect to episode num
 
-        # get state_dim and action_dim for initializing the network
-        self.state_dim = env.observation_space.shape[0]
-        if env.action_space.__class__.__name__ == 'Discrete':
-            self.action_dim = env.action_space.n
-        elif env.action_space.__class__.__name__ == 'Box':  # continuous
-            self.action_dim = env.action_space.shape[0]
-            self.max_action = self.env.action_space.high[0]
-            self.min_action = self.env.action_space.low[0]
-
         # setup network
         self.global_actor = deepcopy(global_actor)
         self.global_critic = deepcopy(global_critic)
@@ -61,11 +52,9 @@ class A3CWorker(mp.Process):
         # todo: add config
         self.replayMemory = EpisodicReplayMemory(0.99)
 
-        self.logger = setup_logger(self.__class__.__name__ + '_training.log', name='training_data')
-
     def episode_reset(self):
         """operation before an episode starts"""
-        self.current_episode_num = self.global_episode_num.value
+        self.current_episode_num = deepcopy(self.global_episode_num.value)
         # we also maintain `current_episode_num` so that when an episode stops, we can get `current` episode accurately
         # not the global value of that moment, which might have been changed by other workers
 
@@ -87,12 +76,13 @@ class A3CWorker(mp.Process):
         action_dist = self.actor(state)
         self.action = action_dist.sample()
         self.log_prob = action_dist.log_prob(self.action).sum()
-        self.action = self.action.detach().numpy()
+        # todo: max action should be specified in the network
+        self.action = self.action.detach().numpy() * self.env.action_space.high[0]
         self.state_value = self.critic(state).squeeze()  # shape: torch.Size([]), just a tensor
 
     def run(self):
         """
-        this is the function that will be executed when `worker.start()` is invoked
+        this is the function that will be executed when `worker.start()` is invoked.
         in our situation, it should be the training method
         """
         while self.global_episode_num.value < self.total_episode_num:
@@ -104,7 +94,10 @@ class A3CWorker(mp.Process):
                 self.select_action()
                 # execute action
                 self.next_state, self.reward, self.done, _ = self.env.step(self.action)
-                # todo: only render one worker
+
+                # render worker-1
+                if self.name.split('-')[1] == '1':
+                    self.env.render()
                 # todo: maybe also record length
 
                 self.episode_reward += self.reward
@@ -117,8 +110,7 @@ class A3CWorker(mp.Process):
             # push episode reward to global
             self.global_episode_rewards[self.current_episode_num - 1] = self.episode_reward
             # print the result of this episode
-            print(f'{self.name} work on episode {self.current_episode_num}, '
-                  f'reward: {self.episode_reward}')
+            print(f'{self.name} work on episode {self.current_episode_num}, reward: {self.episode_reward}')
 
     def save_experience(self):
         """during the procedure of training, store trajectory for future learning"""
@@ -150,9 +142,19 @@ class A3C:
     def __init__(self, env, actor, critic, config):
         # todo: how to record each episode's performance and each run's performance
         self.env = env
+
+        # get state_dim and action_dim for initializing the network
+        self.state_dim = env.observation_space.shape[0]
+        if env.action_space.__class__.__name__ == 'Discrete':
+            self.action_dim = env.action_space.n
+        elif env.action_space.__class__.__name__ == 'Box':  # continuous
+            self.action_dim = env.action_space.shape[0]
+            self.max_action = self.env.action_space.high[0]
+            self.min_action = self.env.action_space.low[0]
+
         self.config = config
-        self.global_actor = actor(3, 1, self.config.get('actor_hidden_layer'))
-        self.global_critic = critic(3, self.config.get('critic_hidden_layer'),
+        self.global_actor = actor(self.state_dim, self.action_dim, self.config.get('actor_hidden_layer'))
+        self.global_critic = critic(self.state_dim, self.config.get('critic_hidden_layer'),
                                     activation=self.config.get('critic_activation'))
         # print(self.global_actor)
         # print(self.global_critic)
@@ -174,20 +176,17 @@ class A3C:
         # todo: config process num
         # self.process_num = mp.cpu_count()  # 16
         self.process_num = 8
-        workers = [A3CWorker(env, self.global_actor, self.global_critic, self.current_episode, self.episode_rewards,
-                             self.episode_num, self.actor_optimizer, self.critic_optimizer)
-                   for _ in range(self.process_num)]
+
+    def train(self):
+        workers = [
+            A3CWorker(self.env, self.global_actor, self.global_critic, self.current_episode, self.episode_rewards,
+                      self.episode_num, self.actor_optimizer, self.critic_optimizer)
+            for _ in range(self.process_num)]
         [worker.start() for worker in workers]
 
         [worker.join() for worker in workers]
 
-        # print(self.episode_rewards[0:5])
-        # print(self.episode_rewards[5:10])
-        # print(self.episode_rewards[10:15])
-        # print(self.episode_rewards[15:20])
-        # print(self.episode_rewards[20:25])
-        # print(self.episode_rewards[25:30])
         fig, ax = plt.subplots()
         ax.plot(range(len(self.episode_rewards[:])), self.episode_rewards[:])
-        plt.savefig('a3c.png')
+        plt.savefig(f'a3c_{self.env.unwrapped.spec.id}.png')
         plt.close(fig)

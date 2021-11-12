@@ -145,6 +145,7 @@ class ContinuousStochasticActor(MLP):
 
 
 # todo: refactor this
+# todo: max_action should be a parameter for network
 class ContinuousStochasticActorFixStd(nn.Module):
 
     def __init__(self, state_dim, action_dim, hidden_layer=None):
