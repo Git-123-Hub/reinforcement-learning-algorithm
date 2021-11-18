@@ -71,3 +71,6 @@ class EpisodicReplayMemory:
 
         self.reset()
         return states, actions, rewards, state_values, log_probs, advantages, discount_rewards
+
+    def __len__(self):
+        return len(self.states)

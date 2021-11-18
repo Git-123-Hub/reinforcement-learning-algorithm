@@ -132,19 +132,20 @@ def transfer_experience(experiences):
     return states, actions, rewards, next_states, dones
 
 
-def discount_sum(x, gamma, *, normalize=False):
+def discount_sum(x, gamma, *, normalize=False, value=0):
     """
     calculate the discounted cumsum of input vector x
+    :param value: start value
     :param x: input vector: [x0, x1, x2]
     :param gamma: discount factor
     :param normalize: keyword argument determine whether normalize the output vector with mean and std
     :return: output vector: [x0 + gamma * x1 + gamma^2 * x2, x1 + gamma * x2, x2]
     """
     result = np.zeros_like(x, dtype=float)
-    R = 0
+    # v0 = 0
     for index in reversed(range(len(x))):
-        R = x[index] + gamma * R
-        result[index] = R
+        value = x[index] + gamma * value
+        result[index] = value
 
     if normalize:
         eps = np.finfo(np.float32).eps.item()  # tiny non-negative number

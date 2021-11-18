@@ -3,28 +3,41 @@
 # @Date: 2021/11/10
 # @Description: implementation of A3C(Asynchronous Advantage Actor Critic)
 ############################################
+import os
+import random
 import time
 from copy import deepcopy
 
+import gym
 import numpy as np
 import torch
 import torch.nn.functional as F
+from torch import nn
 from torch.optim import Adam
 import matplotlib.pyplot as plt
 
 from utils import Agent, EpisodicReplayMemory
 import torch.multiprocessing as mp
-from utils.util import setup_logger
+from utils.const import Color, DefaultGoal
+from utils.shared_adam import SharedAdam
+from utils.util import setup_logger, discount_sum
+
+
+def init_net(net):
+    for layer in net.net:
+        if isinstance(layer, nn.Linear):
+            nn.init.normal_(layer.weight, mean=0., std=0.1)
+            nn.init.constant_(layer.bias, 0.)
 
 
 class A3CWorker(mp.Process):
     """A3C worker that interact with environment asynchronously for an episode"""
 
     def __init__(self, env, global_actor, global_critic, global_episode_num, global_episode_rewards, total_episode_num,
-                 actor_optimizer, critic_optimizer):
+                 actor_optimizer, critic_optimizer, n):
         super(A3CWorker, self).__init__()
         # setup env
-        self.env = deepcopy(env)
+        self.env = gym.make(env.unwrapped.spec.id)
         self.state, self.action, self.reward, self.next_state, self.done = None, None, None, None, False
         self.state_value, self.log_prob = None, None
         # these two value should also be stored in replay memory for learning
@@ -32,15 +45,22 @@ class A3CWorker(mp.Process):
         # reward of the current episode, this value will be pushed to `self.global_episode_rewards`
         # when episode terminates, and will finally be used to plot reward with respect to episode num
 
+        self.name = f'{self.__class__.__name__}-{n}'
+
         # setup network
-        self.global_actor = deepcopy(global_actor)
-        self.global_critic = deepcopy(global_critic)
+        self.global_actor = global_actor
+        self.global_critic = global_critic
+
+        self.global_actor_optimizer = actor_optimizer
+        self.global_critic_optimizer = critic_optimizer
+
         self.actor, self.critic = None, None
+        self.actor_optimizer, self.critic_optimizer = None, None
 
         # self.actor_optimizer = actor_optimizer
         # self.critic_optimizer = critic_optimizer
-        self.actor_optimizer = Adam(global_actor.parameters(), lr=1e-3)
-        self.critic_optimizer = Adam(global_critic.parameters(), lr=1e-3)
+        # self.actor_optimizer = Adam(global_actor.parameters(), lr=1e-3)
+        # self.critic_optimizer = Adam(global_critic.parameters(), lr=1e-3)
         # NOTE that these optimizers are for global net
         # local net doesn't need to be optimized, it just copy from global
 
@@ -63,8 +83,12 @@ class A3CWorker(mp.Process):
         self.actor = deepcopy(self.global_actor)
         self.critic = deepcopy(self.global_critic)
 
-        self.actor_optimizer = Adam(self.global_actor.parameters(), lr=1e-3)
-        self.critic_optimizer = Adam(self.global_critic.parameters(), lr=1e-3)
+        # todo: should each process has its own optimizer
+        # self.actor_optimizer = Adam(self.global_actor.parameters(), lr=1e-3)
+        # self.critic_optimizer = Adam(self.global_critic.parameters(), lr=1e-3)
+
+        self.actor_optimizer = self.global_actor_optimizer
+        self.critic_optimizer = self.global_critic_optimizer
 
         self.state = self.env.reset()
         self.done = False
@@ -74,10 +98,10 @@ class A3CWorker(mp.Process):
         # with torch.no_grad():
         state = torch.tensor(self.state).float().unsqueeze(0)
         action_dist = self.actor(state)
-        self.action = action_dist.sample()
+        self.action = action_dist.sample().detach()
         self.log_prob = action_dist.log_prob(self.action).sum()
         # todo: max action should be specified in the network
-        self.action = self.action.detach().numpy() * self.env.action_space.high[0]
+        self.action = self.action.numpy()
         self.state_value = self.critic(state).squeeze()  # shape: torch.Size([]), just a tensor
 
     def run(self):
@@ -103,21 +127,34 @@ class A3CWorker(mp.Process):
                 self.episode_reward += self.reward
 
                 self.save_experience()
+
+                self.learn()  # learn when an episode stops
+
                 self.state = self.next_state
 
-            self.learn()  # learn when an episode stops
+            # save policy
+            # todo: use running reward
+            if self.episode_reward >= -165:
+                name = f'{self.__class__.__name__}_solve_{self.env.unwrapped.spec.id}_{self.current_episode_num + 1}.pt'
+                torch.save(self.actor.state_dict(), os.path.join('./Pendulum_policy', name))
+
             # todo: how to calculate running rewards
             # push episode reward to global
             self.global_episode_rewards[self.current_episode_num - 1] = self.episode_reward
             # print the result of this episode
-            print(f'{self.name} work on episode {self.current_episode_num}, reward: {self.episode_reward}')
+            print(f'\r{self.name} work on episode {self.current_episode_num}, reward: {self.episode_reward}', end='')
 
     def save_experience(self):
         """during the procedure of training, store trajectory for future learning"""
+        self.reward = (self.reward + 8.1) / 8.1
         experience = (self.state, self.action, self.reward, self.state_value, self.log_prob)
         self.replayMemory.add(experience)
 
     def learn(self):
+
+        # only start to learn when episode stops or collected a trajectory of given length
+        if not (self.done or len(self.replayMemory) == 5):
+            return
 
         def update(local_net, local_loss, global_net, global_optimizer):
             global_optimizer.zero_grad()
@@ -126,22 +163,41 @@ class A3CWorker(mp.Process):
                 global_para._grad = local_para.grad
             global_optimizer.step()
 
-        states, actions, rewards, state_values, log_probs, advantages, discount_rewards = self.replayMemory.fetch()
+        states, actions, rewards, state_values, log_probs, advantages, _ = self.replayMemory.fetch()
+
+        if self.done:
+            value = 0
+        else:
+            next_state = torch.tensor(self.next_state).float().unsqueeze(0)
+            value = self.critic(next_state).squeeze().detach().numpy()
+
+        discount_rewards = discount_sum(rewards.squeeze(dim=1).numpy(), 0.99, value=value)
+        # discount_rewards = torch.from_numpy(np.vstack(self.discount_rewards)).float()
+        discount_rewards = torch.tensor(discount_rewards).float()
 
         # calculate loss for actor
         # todo: actor loss try advantage
         actor_loss = log_probs * (discount_rewards - state_values.detach())
-        update(self.actor, actor_loss.mean(), self.global_actor, self.actor_optimizer)
+        actor_loss = -actor_loss.mean()
+        # actor_loss = -(log_probs * advantages).mean()
+        update(self.actor, actor_loss, self.global_actor, self.actor_optimizer)
+        self.actor.load_state_dict(self.global_actor.state_dict())
 
         # calculate loss for critic
         critic_loss = F.mse_loss(discount_rewards, state_values, reduction='mean')
         update(self.critic, critic_loss, self.global_critic, self.critic_optimizer)
+        # self.critic = deepcopy(self.global_critic)
+        self.critic.load_state_dict(self.global_critic.state_dict())
 
 
 class A3C:
     def __init__(self, env, actor, critic, config):
         # todo: how to record each episode's performance and each run's performance
         self.env = env
+        self.env_id = env.unwrapped.spec.id
+        self.window = 100
+        self.goal = self.env.spec.reward_threshold
+        if self.goal is None: self.goal = DefaultGoal[self.env_id]
 
         # get state_dim and action_dim for initializing the network
         self.state_dim = env.observation_space.shape[0]
@@ -153,6 +209,9 @@ class A3C:
             self.min_action = self.env.action_space.low[0]
 
         self.config = config
+
+        self._actor = actor
+        self._critic = critic
         self.global_actor = actor(self.state_dim, self.action_dim, self.config.get('actor_hidden_layer'))
         self.global_critic = critic(self.state_dim, self.config.get('critic_hidden_layer'),
                                     activation=self.config.get('critic_activation'))
@@ -163,9 +222,14 @@ class A3C:
         self.global_critic.share_memory()
 
         self.config = config
+        self.results_path = self.config.get('results', './results')  # path to store graph and data
+        self.policy_path = self.config.get('policy', './policy')  # path to store the network trained
 
-        self.actor_optimizer = Adam(self.global_actor.parameters(), lr=self.config.get('learning_rate', 1e-3))
-        self.critic_optimizer = Adam(self.global_critic.parameters(), lr=self.config.get('learning_rate', 1e-3))
+        # self.actor_optimizer = Adam(self.global_actor.parameters(), lr=self.config.get('learning_rate', 1e-3))
+        # self.critic_optimizer = Adam(self.global_critic.parameters(), lr=self.config.get('learning_rate', 1e-3))
+
+        self.actor_optimizer = SharedAdam(self.global_actor.parameters(), lr=1e-4, betas=(0.95, 0.999))
+        self.critic_optimizer = SharedAdam(self.global_critic.parameters(), lr=1e-4, betas=(0.95, 0.999))
 
         self.episode_num = self.config.get('episode_num', 1000)
         # self.episode_num = 30
@@ -177,16 +241,51 @@ class A3C:
         # self.process_num = mp.cpu_count()  # 16
         self.process_num = 8
 
+        self.logger = setup_logger('a3c.log', name='a3cTraining')
+
+    def reset(self):
+        """
+        before training start, we have to initialize some variable
+        """
+        self.current_episode = mp.Value('i', 0)  # shared int to record the current episode number
+        self.episode_rewards = mp.Array('d', self.episode_num)
+        self.running_rewards = np.zeros(len(self.episode_rewards))
+
+        self.global_actor = self._actor(self.state_dim, self.action_dim, self.config.get('actor_hidden_layer'))
+        self.global_critic = self._critic(self.state_dim, self.config.get('critic_hidden_layer'),
+                                          activation=self.config.get('critic_activation'))
+
+        init_net(self.global_actor)
+        init_net(self.global_critic)
+
+        self.global_actor.share_memory()
+        self.global_critic.share_memory()
+
+        # todo: is share optim necessary
+        # self.actor_optimizer = Adam(self.global_actor.parameters(), lr=self.config.get('learning_rate', 1e-3))
+        # self.critic_optimizer = Adam(self.global_critic.parameters(), lr=self.config.get('learning_rate', 1e-3))
+
+        self.actor_optimizer = SharedAdam(self.global_actor.parameters(), lr=1e-4, betas=(0.95, 0.999))
+        self.critic_optimizer = SharedAdam(self.global_critic.parameters(), lr=1e-4, betas=(0.95, 0.999))
+
     def train(self):
         workers = [
             A3CWorker(self.env, self.global_actor, self.global_critic, self.current_episode, self.episode_rewards,
-                      self.episode_num, self.actor_optimizer, self.critic_optimizer)
-            for _ in range(self.process_num)]
+                      self.episode_num, self.actor_optimizer, self.critic_optimizer, n + 1)
+            for n in range(self.process_num)]
         [worker.start() for worker in workers]
 
         [worker.join() for worker in workers]
 
+        print('\nTraining finishes')
+
+        # plot training result of this run
+        for i in range(len(self.episode_rewards)):
+            self.running_rewards[i] = np.mean(self.episode_rewards[max(i + 1 - 100, 0):i + 1])
+
         fig, ax = plt.subplots()
         ax.plot(range(len(self.episode_rewards[:])), self.episode_rewards[:])
-        plt.savefig(f'a3c_{self.env.unwrapped.spec.id}.png')
+        ax.plot(range(len(self.episode_rewards[:])), self.running_rewards)
+        name = f'a3c_{self.env.unwrapped.spec.id}.png'
+        plt.savefig(os.path.join(self.results_path, name))
         plt.close(fig)

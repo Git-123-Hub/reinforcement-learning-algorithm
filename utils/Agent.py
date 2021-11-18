@@ -358,7 +358,7 @@ class Agent(abc.ABC):
                 done = False
 
                 while not done:  # test for an episode
-                    if self.config.get('render') in ['test', 'both']: self.env.render()
+                    if self.config.get('render') in ['test', 'both']: env.render()
                     # time.sleep(0.01)
 
                     action = self.test_action(state)
