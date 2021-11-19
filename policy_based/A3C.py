@@ -21,18 +21,19 @@ from utils import Agent, EpisodicReplayMemory
 import torch.multiprocessing as mp
 from utils.const import Color, DefaultGoal
 from utils.shared_adam import SharedAdam
-from utils.util import setup_logger, discount_sum
+from utils.util import setup_logger, discount_sum, initial_folder
 
 
 class A3CWorker(mp.Process):
     """A3C worker that interact with environment asynchronously for an episode"""
 
     def __init__(self, env_id, global_actor, global_critic, actor_optimizer, critic_optimizer,
-                 global_episode_num, total_episode_num,
+                 global_episode_num, total_episode_num, length,
                  episode_rewards, running_rewards, window,
-                 n, gamma):
+                 n, gamma, render, run_num, policy_path):
         super(A3CWorker, self).__init__()
         # setup env
+        self.env_id = env_id
         self.env = gym.make(env_id)
         self.state, self.action, self.reward, self.next_state, self.done = None, None, None, None, False
         self.state_value, self.log_prob = None, None
@@ -64,12 +65,16 @@ class A3CWorker(mp.Process):
         self.total_episode_num = total_episode_num
         self.current_episode_num = 0
 
+        self.length = length
+
         self.episode_rewards = episode_rewards
         self.running_rewards = running_rewards
         self.window = window
 
-        # todo: add config
-        self.replayMemory = EpisodicReplayMemory(0.99)
+        self.replayMemory = EpisodicReplayMemory(gamma)
+        self.render = render
+        self.policy_path = policy_path
+        self.run_num = run_num
 
     def episode_reset(self):
         """operation before an episode starts"""
@@ -111,17 +116,18 @@ class A3CWorker(mp.Process):
         while self.global_episode_num.value < self.total_episode_num:
             self.global_episode_num.value += 1
             self.episode_reset()
+            length = 0
 
             # agent interact with env for an episode
             while not self.done:
+                length += 1
                 self.select_action()
                 # execute action
                 self.next_state, self.reward, self.done, _ = self.env.step(self.action)
 
-                # render worker-1
-                if self.name.split('-')[1] == '1':
+                # if render is required, only render worker-1
+                if self.render and self.name.split('-')[1] == '1':
                     self.env.render()
-                # todo: maybe also record length
 
                 self.episode_reward += self.reward
 
@@ -134,18 +140,21 @@ class A3CWorker(mp.Process):
             # save policy
             # todo: use running reward
             if self.episode_reward >= -165:
-                name = f'{self.__class__.__name__}_solve_{self.env.unwrapped.spec.id}_{self.current_episode_num + 1}.pt'
-                torch.save(self.actor.state_dict(), os.path.join('./Pendulum_policy', name))
+                run_info = ''
+                if self.run_num != '':
+                    run_info = f'{self.run_num}_'
+                name = f'{self.__class__.__name__}_solve_{self.env_id}_{run_info}{self.current_episode_num}.pt'
+                torch.save(self.actor.state_dict(), os.path.join(self.policy_path, name))
 
-            # todo: how to calculate running rewards
             # push episode reward to global
             self.episode_rewards[self.current_episode_num - 1] = self.episode_reward
+            self.length[self.current_episode_num - 1] = length
             start_index = max(self.current_episode_num - self.window, 0)
             running_reward = np.mean(self.episode_rewards[start_index: self.current_episode_num])
             self.running_rewards[self.current_episode_num - 1] = running_reward
             # print the result of this episode
-            print(f'\r{self.name} work on episode {self.current_episode_num}, '
-                  f'reward: {self.episode_reward}, running reward: {running_reward}', end='')
+            print(f'\r{self.name: <12s} work on episode {self.current_episode_num}, '
+                  f'reward: {self.episode_reward: >6.1f}, running reward: {running_reward: >6.1f}', end='')
 
     def save_experience(self):
         """during the procedure of training, store trajectory for future learning"""
@@ -196,6 +205,9 @@ class A3CWorker(mp.Process):
 class A3C(Agent):
     def __init__(self, env, actor, critic, config):
         super(A3C, self).__init__(env, config)
+        self.results_path = self.config.get('results', './results')  # path to store graph and data
+        initial_folder(self.results_path, clear=self.config.get('clear_result', False))
+        self.policy_path = initial_folder(self.results_path + '/policy saved', clear=False)
         self._actor = actor
         self._critic = critic
         # todo: config process num
@@ -205,15 +217,19 @@ class A3C(Agent):
 
         self.reset()  # setup some variable
 
+        self.run = ''  # this is a flag for distinguish different run, especially when use Trainer to train multiple run
+
     def reset(self):
         """
         before training start, we have to initialize some variable
         """
         self.current_episode = mp.Value('i', 0)  # shared int to record the current episode number
-        self.rewards = mp.Array('d', self.episode_num)
-        self.running_rewards = mp.Array('d', self.episode_num)
+        self.length = mp.Array('i', self.episode_num)  # record length(steps) of each episode
+        self.rewards = mp.Array('d', self.episode_num)  # record reward of each episode
+        self.running_rewards = mp.Array('d', self.episode_num)  # record running reward of each episode
 
-        self.global_actor = self._actor(self.state_dim, self.action_dim, self.config.get('actor_hidden_layer'))
+        self.global_actor = self._actor(self.state_dim, self.action_dim, self.config.get('actor_hidden_layer'),
+                                        self.max_action)
         self.global_critic = self._critic(self.state_dim, self.config.get('critic_hidden_layer'),
                                           activation=self.config.get('critic_activation'))
 
@@ -231,11 +247,12 @@ class A3C(Agent):
         self._time = time.time()
 
     def train(self):
+        render = True if self.config.get('render') in ['train', 'both'] else False
         workers = [A3CWorker(self.env_id,
                              self.global_actor, self.global_critic, self.actor_optimizer, self.critic_optimizer,
-                             self.current_episode, self.episode_num,
+                             self.current_episode, self.episode_num, self.length,
                              self.rewards, self.running_rewards, self.window,
-                             n + 1, self.config.get('discount_factor'))
+                             n + 1, self.config.get('discount_factor'), render, self.run, self.policy_path)
                    for n in range(self.process_num)]
 
         [worker.start() for worker in workers]
@@ -253,13 +270,8 @@ class A3C(Agent):
 
         # calculate running time and total steps of this run
         delta_time = time.time() - self._time
-        # todo: total steps:
-        print(f'time taken: {str(datetime.timedelta(seconds=int(delta_time)))}')
-
-        # print(f'time taken: {str(datetime.timedelta(seconds=int(delta_time)))}, '
-        #       f'total steps: {self.length[self._run].sum()}{Color.END}')
-
-        print(f'{Color.INFO}Training Finished.{Color.END}')
+        print(f'time taken: {str(datetime.timedelta(seconds=int(delta_time)))}, '
+              f'total steps: {sum(self.length[:])}{Color.END}')
 
         # plot training result of this run
         fig, ax = plt.subplots()
@@ -273,6 +285,8 @@ class A3C(Agent):
 
         ax.legend(loc='lower right')
         name = f'result of {self.__class__.__name__} solving {self.env_id}'
+        if self.run != '':
+            name += f' ({self.run}th run)'
         ax.set_title(name)
         plt.savefig(os.path.join(self.results_path, name))
         plt.close(fig)

@@ -20,28 +20,12 @@ class Trainer:
         self.rewards = np.zeros((run, agent.episode_num), dtype=float)
         self.running_rewards = np.zeros((run, agent.episode_num), dtype=float)
 
-        # NOTE that: consider there might be a lot of results for different run
-        # we separate results of each run using different sub-folder
-        self.policy_path_list, self.results_path_list = [], []
-        for run in range(self.run_num):
-            policy_path = self.agent.policy_path + f'/{run + 1}th run'
-            initial_folder(policy_path)
-            self.policy_path_list.append(policy_path)
-
-            results_path = self.agent.results_path + f'/{run + 1}th run'
-            initial_folder(results_path)
-            self.results_path_list.append(results_path)
-
-        # we also keep the original path to store the statistic result of all the run
-        self.result_path = agent.results_path
-
     def train(self):
         for run in range(self.run_num):
-            print(f'agent train for the {run + 1}th run:')
-            self.agent.policy_path = self.policy_path_list[run]
-            self.agent.results_path = self.results_path_list[run]
+            print(f'train {self.agent.__class__.__name__} to solve {self.agent.env_id} for the {run + 1}th run:')
             # todo: change run_reset() to reset()
             self.agent.reset()
+            self.agent.run = run + 1
             self.agent.train()
 
             # copy training result to `self.rewards` for statistical analyze
@@ -72,5 +56,5 @@ class Trainer:
 
         name = f'running reward of {self.agent.__class__.__name__} solving {self.agent.env_id}'
         ax.set_title(name)
-        plt.savefig(os.path.join(self.result_path, name))
+        plt.savefig(os.path.join(self.agent.results_path, name))
         plt.close(fig)

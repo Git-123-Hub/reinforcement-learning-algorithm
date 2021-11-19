@@ -155,7 +155,7 @@ class ContinuousStochasticActor(MLP):
 # todo: max_action should be a parameter for network
 class ContinuousStochasticActorFixStd(nn.Module):
 
-    def __init__(self, state_dim, action_dim, hidden_layer=None):
+    def __init__(self, state_dim, action_dim, hidden_layer=None, max_action=1):
         """stochastic actor that take state as input and output mean and log_std of the action distribution"""
         super().__init__()
         if hidden_layer is None:
@@ -178,13 +178,14 @@ class ContinuousStochasticActorFixStd(nn.Module):
         # log_std = torch.tensor(log_std)
         # self.std = torch.exp(log_std)
 
+        self.max_action = max_action
         self.std = torch.tensor(0.5 * np.ones(action_dim, dtype=np.float32))
 
     def forward(self, state):
         """The action is sampled from the Gaussian distribution using mean and log_std from the network"""
         # NOTE that `forward()` returns a distribution, so there is no need to multiply by max_action here
         mean = self.net(state).squeeze(0)
-        return Normal(2 * mean, self.std)
+        return Normal(self.max_action * mean, self.std)
 
     def init(self, net=None):
         if net is None: net = self.net
