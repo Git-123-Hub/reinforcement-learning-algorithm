@@ -110,6 +110,9 @@ def get_base_config():
         # ##### parameters for PPO ##### #
         'training_epoch': 50,
         'clip_ratio': 0.2,
+
+        # ##### parameters for A3C ##### #
+        'process_num': None,
     }
 
 

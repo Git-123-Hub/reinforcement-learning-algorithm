@@ -210,9 +210,10 @@ class A3C(Agent):
         self.policy_path = initial_folder(self.results_path + '/policy saved', clear=False)
         self._actor = actor
         self._critic = critic
-        # todo: config process num
-        # self.process_num = mp.cpu_count()  # 16
-        self.process_num = 8
+
+        self.process_num = self.config.get('process_num')
+        if self.process_num is None: self.process_num = mp.cpu_count()
+
         self.logger = setup_logger('a3c.log', name='a3cTraining')
 
         self.reset()  # setup some variable

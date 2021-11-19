@@ -57,7 +57,7 @@ if __name__ == '__main__':
     config['episode_num'] = 30
     config['actor_hidden_layer'] = [128, 128]
     config['critic_hidden_layer'] = [128, 128]
-    config['seed'] = 123
+    config['process_num'] = 8
     agent = A3C(env, ContinuousStochasticActorFixStd, StateCritic, config)
     # agent.train()
     trainer = Trainer(agent, 3)
