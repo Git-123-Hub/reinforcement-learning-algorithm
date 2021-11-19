@@ -53,6 +53,13 @@ class MLP(nn.Module, abc.ABC):
         for n, p in self.named_parameters():
             print(p.grad.min(), p.grad.max(), p.grad.mean(), p.grad.std())
 
+    def init(self, net=None):
+        if net is None: net = self.net
+        for layer in net:
+            if isinstance(layer, nn.Linear):
+                nn.init.normal_(layer.weight, mean=0., std=0.1)
+                nn.init.constant_(layer.bias, 0.)
+
 
 class QNet(MLP):
     """approximator for Q-value, output estimated value of each action"""
@@ -162,7 +169,9 @@ class ContinuousStochasticActorFixStd(nn.Module):
         for i in range(len(hidden_layer) - 1):
             modules.append(nn.Linear(hidden_layer[i], hidden_layer[i + 1]))
             if i != len(hidden_layer) - 2:  # the last layer don't need an activation function
-                modules.append(nn.ReLU())
+                modules.append(nn.ReLU6())
+
+        modules.append(nn.Tanh())
         self.net = nn.Sequential(*modules)
 
         # log_std = -0.5 * np.ones(action_dim, dtype=np.float32)
@@ -175,7 +184,14 @@ class ContinuousStochasticActorFixStd(nn.Module):
         """The action is sampled from the Gaussian distribution using mean and log_std from the network"""
         # NOTE that `forward()` returns a distribution, so there is no need to multiply by max_action here
         mean = self.net(state).squeeze(0)
-        return Normal(mean, self.std)
+        return Normal(2 * mean, self.std)
+
+    def init(self, net=None):
+        if net is None: net = self.net
+        for layer in net:
+            if isinstance(layer, nn.Linear):
+                nn.init.normal_(layer.weight, mean=0., std=0.1)
+                nn.init.constant_(layer.bias, 0.)
 
 
 if __name__ == '__main__':

@@ -3,6 +3,7 @@
 # @Date: 2021/11/10
 # @Description: implementation of A3C(Asynchronous Advantage Actor Critic)
 ############################################
+import datetime
 import os
 import random
 import time
@@ -23,21 +24,16 @@ from utils.shared_adam import SharedAdam
 from utils.util import setup_logger, discount_sum
 
 
-def init_net(net):
-    for layer in net.net:
-        if isinstance(layer, nn.Linear):
-            nn.init.normal_(layer.weight, mean=0., std=0.1)
-            nn.init.constant_(layer.bias, 0.)
-
-
 class A3CWorker(mp.Process):
     """A3C worker that interact with environment asynchronously for an episode"""
 
-    def __init__(self, env, global_actor, global_critic, global_episode_num, global_episode_rewards, total_episode_num,
-                 actor_optimizer, critic_optimizer, n):
+    def __init__(self, env_id, global_actor, global_critic, actor_optimizer, critic_optimizer,
+                 global_episode_num, total_episode_num,
+                 episode_rewards, running_rewards, window,
+                 n, gamma):
         super(A3CWorker, self).__init__()
         # setup env
-        self.env = gym.make(env.unwrapped.spec.id)
+        self.env = gym.make(env_id)
         self.state, self.action, self.reward, self.next_state, self.done = None, None, None, None, False
         self.state_value, self.log_prob = None, None
         # these two value should also be stored in replay memory for learning
@@ -65,9 +61,12 @@ class A3CWorker(mp.Process):
         # local net doesn't need to be optimized, it just copy from global
 
         self.global_episode_num = global_episode_num
-        self.global_episode_rewards = global_episode_rewards
         self.total_episode_num = total_episode_num
         self.current_episode_num = 0
+
+        self.episode_rewards = episode_rewards
+        self.running_rewards = running_rewards
+        self.window = window
 
         # todo: add config
         self.replayMemory = EpisodicReplayMemory(0.99)
@@ -140,9 +139,13 @@ class A3CWorker(mp.Process):
 
             # todo: how to calculate running rewards
             # push episode reward to global
-            self.global_episode_rewards[self.current_episode_num - 1] = self.episode_reward
+            self.episode_rewards[self.current_episode_num - 1] = self.episode_reward
+            start_index = max(self.current_episode_num - self.window, 0)
+            running_reward = np.mean(self.episode_rewards[start_index: self.current_episode_num])
+            self.running_rewards[self.current_episode_num - 1] = running_reward
             # print the result of this episode
-            print(f'\r{self.name} work on episode {self.current_episode_num}, reward: {self.episode_reward}', end='')
+            print(f'\r{self.name} work on episode {self.current_episode_num}, '
+                  f'reward: {self.episode_reward}, running reward: {running_reward}', end='')
 
     def save_experience(self):
         """during the procedure of training, store trajectory for future learning"""
@@ -190,102 +193,111 @@ class A3CWorker(mp.Process):
         self.critic.load_state_dict(self.global_critic.state_dict())
 
 
-class A3C:
+class A3C(Agent):
     def __init__(self, env, actor, critic, config):
-        # todo: how to record each episode's performance and each run's performance
-        self.env = env
-        self.env_id = env.unwrapped.spec.id
-        self.window = 100
-        self.goal = self.env.spec.reward_threshold
-        if self.goal is None: self.goal = DefaultGoal[self.env_id]
-
-        # get state_dim and action_dim for initializing the network
-        self.state_dim = env.observation_space.shape[0]
-        if env.action_space.__class__.__name__ == 'Discrete':
-            self.action_dim = env.action_space.n
-        elif env.action_space.__class__.__name__ == 'Box':  # continuous
-            self.action_dim = env.action_space.shape[0]
-            self.max_action = self.env.action_space.high[0]
-            self.min_action = self.env.action_space.low[0]
-
-        self.config = config
-
+        super(A3C, self).__init__(env, config)
         self._actor = actor
         self._critic = critic
-        self.global_actor = actor(self.state_dim, self.action_dim, self.config.get('actor_hidden_layer'))
-        self.global_critic = critic(self.state_dim, self.config.get('critic_hidden_layer'),
-                                    activation=self.config.get('critic_activation'))
-        # print(self.global_actor)
-        # print(self.global_critic)
-
-        self.global_actor.share_memory()
-        self.global_critic.share_memory()
-
-        self.config = config
-        self.results_path = self.config.get('results', './results')  # path to store graph and data
-        self.policy_path = self.config.get('policy', './policy')  # path to store the network trained
-
-        # self.actor_optimizer = Adam(self.global_actor.parameters(), lr=self.config.get('learning_rate', 1e-3))
-        # self.critic_optimizer = Adam(self.global_critic.parameters(), lr=self.config.get('learning_rate', 1e-3))
-
-        self.actor_optimizer = SharedAdam(self.global_actor.parameters(), lr=1e-4, betas=(0.95, 0.999))
-        self.critic_optimizer = SharedAdam(self.global_critic.parameters(), lr=1e-4, betas=(0.95, 0.999))
-
-        self.episode_num = self.config.get('episode_num', 1000)
-        # self.episode_num = 30
-        self.episode_rewards = mp.Array('d', self.episode_num)  # a shared array to record reward of each episode
-        # todo: add current run
-        self.current_episode = mp.Value('i', 0)  # shared int to record the current episode number
-
         # todo: config process num
         # self.process_num = mp.cpu_count()  # 16
         self.process_num = 8
-
         self.logger = setup_logger('a3c.log', name='a3cTraining')
+
+        self.reset()  # setup some variable
 
     def reset(self):
         """
         before training start, we have to initialize some variable
         """
         self.current_episode = mp.Value('i', 0)  # shared int to record the current episode number
-        self.episode_rewards = mp.Array('d', self.episode_num)
-        self.running_rewards = np.zeros(len(self.episode_rewards))
+        self.rewards = mp.Array('d', self.episode_num)
+        self.running_rewards = mp.Array('d', self.episode_num)
 
         self.global_actor = self._actor(self.state_dim, self.action_dim, self.config.get('actor_hidden_layer'))
         self.global_critic = self._critic(self.state_dim, self.config.get('critic_hidden_layer'),
                                           activation=self.config.get('critic_activation'))
 
-        init_net(self.global_actor)
-        init_net(self.global_critic)
+        self.global_actor.init()
+        self.global_critic.init()
 
         self.global_actor.share_memory()
         self.global_critic.share_memory()
 
         # todo: is share optim necessary
-        # self.actor_optimizer = Adam(self.global_actor.parameters(), lr=self.config.get('learning_rate', 1e-3))
-        # self.critic_optimizer = Adam(self.global_critic.parameters(), lr=self.config.get('learning_rate', 1e-3))
-
         self.actor_optimizer = SharedAdam(self.global_actor.parameters(), lr=1e-4, betas=(0.95, 0.999))
         self.critic_optimizer = SharedAdam(self.global_critic.parameters(), lr=1e-4, betas=(0.95, 0.999))
+        # self.actor_optimizer = Adam(self.global_actor.parameters(), lr=self.config.get('learning_rate', 1e-3))
+        # self.critic_optimizer = Adam(self.global_critic.parameters(), lr=self.config.get('learning_rate', 1e-3))
+        self._time = time.time()
 
     def train(self):
-        workers = [
-            A3CWorker(self.env, self.global_actor, self.global_critic, self.current_episode, self.episode_rewards,
-                      self.episode_num, self.actor_optimizer, self.critic_optimizer, n + 1)
-            for n in range(self.process_num)]
+        workers = [A3CWorker(self.env_id,
+                             self.global_actor, self.global_critic, self.actor_optimizer, self.critic_optimizer,
+                             self.current_episode, self.episode_num,
+                             self.rewards, self.running_rewards, self.window,
+                             n + 1, self.config.get('discount_factor'))
+                   for n in range(self.process_num)]
+
         [worker.start() for worker in workers]
 
         [worker.join() for worker in workers]
 
-        print('\nTraining finishes')
+        # determine whether the agent has solved the problem
+        episode = np.argmax(np.array(self.running_rewards) >= self.goal)
+        # use np.argmax because it stops at the first True(more efficient)
+        # but it might return 0 if no there is no True, so another condition is needed
+        if episode > 0 or (episode == 0 and self.running_rewards[0] >= self.goal):
+            print(f'\n{Color.SUCCESS}Problem solved on episode {episode + 1}, ', end='')
+        else:
+            print(f'\n{Color.FAIL}Problem NOT solved, ', end='')
+
+        # calculate running time and total steps of this run
+        delta_time = time.time() - self._time
+        # todo: total steps:
+        print(f'time taken: {str(datetime.timedelta(seconds=int(delta_time)))}')
+
+        # print(f'time taken: {str(datetime.timedelta(seconds=int(delta_time)))}, '
+        #       f'total steps: {self.length[self._run].sum()}{Color.END}')
+
+        print(f'{Color.INFO}Training Finished.{Color.END}')
 
         # plot training result of this run
-        for i in range(len(self.episode_rewards)):
-            self.running_rewards[i] = np.mean(self.episode_rewards[max(i + 1 - 100, 0):i + 1])
-
         fig, ax = plt.subplots()
-        ax.plot(range(len(self.episode_rewards[:])), self.episode_rewards[:])
-        ax.plot(range(len(self.episode_rewards[:])), self.running_rewards)
-        name = f'a3c_{self.env.unwrapped.spec.id}.png'
+        ax.set_xlabel('episode')
+        ax.set_ylabel('reward')
+
+        x = np.arange(1, self.episode_num + 1)
+        ax.plot(x, self.rewards[:], label='reward', color=Color.REWARD, zorder=1)
+        ax.hlines(y=self.goal, xmin=1, xmax=self.episode_num, label='goal', colors=Color.GOAL, zorder=2)
+        ax.plot(x, self.running_rewards, label='running reward', color=Color.RUNNING_REWARD, zorder=3)
+
+        ax.legend(loc='lower right')
+        name = f'result of {self.__class__.__name__} solving {self.env_id}'
+        ax.set_title(name)
         plt.savefig(os.path.join(self.results_path, name))
         plt.close(fig)
+
+    def load_policy(self, file):
+        """load the parameter saved to value-network or policy-network for testing"""
+        if self.global_actor is None:
+            self.global_actor = self._actor(self.state_dim, self.action_dim, self.config.get('actor_hidden_layer'))
+        self.global_actor.load_state_dict(torch.load(file))
+        self.global_actor.eval()
+
+    def test_action(self, state):
+        """get the action according to the network in test scenario"""
+        state = torch.tensor(state).float().unsqueeze(0)
+        action_dist = self.global_actor(state)
+        return action_dist.sample().detach().numpy()
+
+    # NOTE that all the interactions with the env are performed by worker
+    # i.e. the `worker` should consider how to select action, how to learn, how to save policy
+    # so there is no need to implement these three methods
+    def select_action(self):
+        pass
+
+    def learn(self):
+        pass
+
+    def save_policy(self):
+        pass

@@ -17,10 +17,11 @@ class Trainer:
     def __init__(self, agent: A3C, run: int):
         self.agent = agent
         self.run_num = run
-        self.rewards = np.zeros(run, dtype=np.ndarray)
-        self.running_rewards = np.zeros(run, dtype=np.ndarray)
+        self.rewards = np.zeros((run, agent.episode_num), dtype=float)
+        self.running_rewards = np.zeros((run, agent.episode_num), dtype=float)
 
-        # separate different run using sub-folder
+        # NOTE that: consider there might be a lot of results for different run
+        # we separate results of each run using different sub-folder
         self.policy_path_list, self.results_path_list = [], []
         for run in range(self.run_num):
             policy_path = self.agent.policy_path + f'/{run + 1}th run'
@@ -30,6 +31,9 @@ class Trainer:
             results_path = self.agent.results_path + f'/{run + 1}th run'
             initial_folder(results_path)
             self.results_path_list.append(results_path)
+
+        # we also keep the original path to store the statistic result of all the run
+        self.result_path = agent.results_path
 
     def train(self):
         for run in range(self.run_num):
@@ -41,8 +45,8 @@ class Trainer:
             self.agent.train()
 
             # copy training result to `self.rewards` for statistical analyze
-            self.rewards[run] = self.agent.episode_rewards[:]
-            self.running_rewards[run] = self.agent.running_rewards[:]
+            self.rewards[run][:] = self.agent.rewards[:]
+            self.running_rewards[run][:] = self.agent.running_rewards[:]
 
         # plot all the training result
         # initialize a figure
@@ -66,7 +70,7 @@ class Trainer:
         #     ax.plot(x, self.running_rewards[run], label=f'{run + 1}th run')
         # ax.legend(loc='lower right')
 
-        name = f'running reward of {self.__class__.__name__} solving {self.agent.env_id}'
+        name = f'running reward of {self.agent.__class__.__name__} solving {self.agent.env_id}'
         ax.set_title(name)
-        plt.savefig(os.path.join(self.agent.results_path, name))
+        plt.savefig(os.path.join(self.result_path, name))
         plt.close(fig)
