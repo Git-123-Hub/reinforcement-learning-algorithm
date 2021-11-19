@@ -5,7 +5,8 @@
 ############################################
 import gym
 
-from policy_based import DDPG, TD3, PPO
+from policy_based import DDPG, TD3, PPO, A3C
+from utils import Trainer
 from utils.const import get_base_config
 from utils.model import DeterministicActor, StateActionCritic, ContinuousStochasticActor, StateCritic, \
     ContinuousStochasticActorFixStd
@@ -51,4 +52,14 @@ if __name__ == '__main__':
     config['episode_num'] = 300 * 30
     # agent = PPO(env, ContinuousStochasticActor, StateCritic, config)
     agent = PPO(env, ContinuousStochasticActorFixStd, StateCritic, config)
-    agent.train()
+    # agent.train()
+
+    config['episode_num'] = 30
+    config['actor_hidden_layer'] = [128, 128]
+    config['critic_hidden_layer'] = [128, 128]
+    config['seed'] = 123
+    agent = A3C(env, ContinuousStochasticActorFixStd, StateCritic, config)
+    # agent.train()
+    trainer = Trainer(agent, 3)
+    trainer.train()
+    # agent.test()
