@@ -5,42 +5,58 @@
 ############################################
 import datetime
 import os
-import random
 import time
 from copy import deepcopy
 
 import gym
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
+import torch.multiprocessing as mp
 import torch.nn.functional as F
-from torch import nn
-from torch.optim import Adam
-import matplotlib.pyplot as plt
 
 from utils import Agent, EpisodicReplayMemory
-import torch.multiprocessing as mp
 from utils.const import Color, DefaultGoal
 from utils.shared_adam import SharedAdam
 from utils.util import setup_logger, discount_sum, initial_folder
 
 
 class A3CWorker(mp.Process):
-    """A3C worker that interact with environment asynchronously for an episode"""
+    """A3C worker that interacts with environment asynchronously for an episode"""
 
     def __init__(self, env_id, global_actor, global_critic, actor_optimizer, critic_optimizer,
                  global_episode_num, total_episode_num, length,
-                 episode_rewards, running_rewards, window,
-                 n, gamma, render, run_num, policy_path):
+                 episode_rewards, running_rewards, window: int,
+                 n: int, gamma: float, render: bool, run_num, policy_path):
+        """
+        initialize the worker
+        :param env_id: used to make the env
+        :param global_actor: actor that will be optimized and copied from
+        :param global_critic: critic that will be optimized and copied from
+        :param actor_optimizer: optimizer for global actor
+        :param critic_optimizer: optimizer for global critic
+        :param global_episode_num: a shared int to indicate the number of episodes that have been performed,
+                                   i.e. the sum of episodes num that have been performed by all the workers
+        :param total_episode_num: max episode num that will be performed by all workers
+        :param length: a shared array to record the length(total steps) of each episode
+        :param episode_rewards: a shared array to record episode reward of each episode
+        :param running_rewards: a shared array to record running average reward of `episode_rewards`
+        :param window: const that will be used to calculate running_rewards
+        :param n: use to specify each worker's name
+        :param gamma: discount_factor, used when calculate discount cumsum of reward
+        :param render: determine whether render the env or not, if True, only render worker-1
+        :param run_num: used to specify the current run_num when train for multiple runs
+        :param policy_path: path to store policies that will be stored
+        """
         super(A3CWorker, self).__init__()
         # setup env
         self.env_id = env_id
         self.env = gym.make(env_id)
+        self.goal = self.env.spec.reward_threshold
+        if self.goal is None: self.goal = DefaultGoal[self.env_id]
         self.state, self.action, self.reward, self.next_state, self.done = None, None, None, None, False
         self.state_value, self.log_prob = None, None
         # these two value should also be stored in replay memory for learning
-        self.episode_reward = 0
-        # reward of the current episode, this value will be pushed to `self.global_episode_rewards`
-        # when episode terminates, and will finally be used to plot reward with respect to episode num
 
         self.name = f'{self.__class__.__name__}-{n}'
 
@@ -50,20 +66,18 @@ class A3CWorker(mp.Process):
 
         self.global_actor_optimizer = actor_optimizer
         self.global_critic_optimizer = critic_optimizer
-
-        self.actor, self.critic = None, None
-        self.actor_optimizer, self.critic_optimizer = None, None
-
-        # self.actor_optimizer = actor_optimizer
-        # self.critic_optimizer = critic_optimizer
-        # self.actor_optimizer = Adam(global_actor.parameters(), lr=1e-3)
-        # self.critic_optimizer = Adam(global_critic.parameters(), lr=1e-3)
         # NOTE that these optimizers are for global net
         # local net doesn't need to be optimized, it just copy from global
+
+        # local actor and critic
+        self.actor = deepcopy(self.global_actor)
+        self.critic = deepcopy(self.global_critic)
 
         self.global_episode_num = global_episode_num
         self.total_episode_num = total_episode_num
         self.current_episode_num = 0
+        # NOTE: we also maintain `current_episode_num` so that we can always know the number of current episode
+        # it's not the global value of that moment, which might have been changed by other workers
 
         self.length = length
 
@@ -79,13 +93,11 @@ class A3CWorker(mp.Process):
     def episode_reset(self):
         """operation before an episode starts"""
         self.current_episode_num = deepcopy(self.global_episode_num.value)
-        # we also maintain `current_episode_num` so that when an episode stops, we can get `current` episode accurately
-        # not the global value of that moment, which might have been changed by other workers
 
         self.replayMemory.reset()
         # copy from the global network
-        self.actor = deepcopy(self.global_actor)
-        self.critic = deepcopy(self.global_critic)
+        self.actor.load_state_dict(self.global_actor.state_dict())
+        self.critic.load_state_dict(self.global_critic.state_dict())
 
         # todo: should each process has its own optimizer
         # self.actor_optimizer = Adam(self.global_actor.parameters(), lr=1e-3)
@@ -96,15 +108,12 @@ class A3CWorker(mp.Process):
 
         self.state = self.env.reset()
         self.done = False
-        self.episode_reward = 0  # reset reward of the current episode
 
     def select_action(self):
-        # with torch.no_grad():
         state = torch.tensor(self.state).float().unsqueeze(0)
         action_dist = self.actor(state)
         self.action = action_dist.sample().detach()
         self.log_prob = action_dist.log_prob(self.action).sum()
-        # todo: max action should be specified in the network
         self.action = self.action.numpy()
         self.state_value = self.critic(state).squeeze()  # shape: torch.Size([]), just a tensor
 
@@ -116,7 +125,9 @@ class A3CWorker(mp.Process):
         while self.global_episode_num.value < self.total_episode_num:
             self.global_episode_num.value += 1
             self.episode_reset()
-            length = 0
+            length = 0  # length(steps) of the current episode
+            reward = 0  # reward of the current episode
+            # this value will be pushed to `self.global_episode_rewards` when episode terminates
 
             # agent interact with env for an episode
             while not self.done:
@@ -124,37 +135,36 @@ class A3CWorker(mp.Process):
                 self.select_action()
                 # execute action
                 self.next_state, self.reward, self.done, _ = self.env.step(self.action)
+                reward += self.reward
 
                 # if render is required, only render worker-1
                 if self.render and self.name.split('-')[1] == '1':
                     self.env.render()
 
-                self.episode_reward += self.reward
-
                 self.save_experience()
-
                 self.learn()  # learn when an episode stops
 
                 self.state = self.next_state
 
+            # push episode reward to global, record result of this episode
+            self.episode_rewards[self.current_episode_num - 1] = reward
+            self.length[self.current_episode_num - 1] = length
+            start_index = max(self.current_episode_num - self.window, 0)
+            running_reward = np.mean(self.episode_rewards[start_index: self.current_episode_num])
+            self.running_rewards[self.current_episode_num - 1] = running_reward
+
             # save policy
-            # todo: use running reward
-            if self.episode_reward >= -165:
+            if running_reward >= self.goal:
                 run_info = ''
+                # if run_num is specified, it should also be in the filename of policy to distinguish different episode
                 if self.run_num != '':
                     run_info = f'{self.run_num}_'
                 name = f'{self.__class__.__name__}_solve_{self.env_id}_{run_info}{self.current_episode_num}.pt'
                 torch.save(self.actor.state_dict(), os.path.join(self.policy_path, name))
 
-            # push episode reward to global
-            self.episode_rewards[self.current_episode_num - 1] = self.episode_reward
-            self.length[self.current_episode_num - 1] = length
-            start_index = max(self.current_episode_num - self.window, 0)
-            running_reward = np.mean(self.episode_rewards[start_index: self.current_episode_num])
-            self.running_rewards[self.current_episode_num - 1] = running_reward
             # print the result of this episode
             print(f'\r{self.name: <12s} work on episode {self.current_episode_num}, '
-                  f'reward: {self.episode_reward: >6.1f}, running reward: {running_reward: >6.1f}', end='')
+                  f'reward: {reward: >6.1f}, running reward: {running_reward: >6.1f}', end='')
 
     def save_experience(self):
         """during the procedure of training, store trajectory for future learning"""
@@ -163,12 +173,16 @@ class A3CWorker(mp.Process):
         self.replayMemory.add(experience)
 
     def learn(self):
-
         # only start to learn when episode stops or collected a trajectory of given length
         if not (self.done or len(self.replayMemory) == 5):
             return
 
         def update(local_net, local_loss, global_net, global_optimizer):
+            """
+            calculate gradient of `local_net` using `local_loss`
+            copy gradient to `global_net`
+            optimize `global_net` using `global_optimizer`
+            """
             global_optimizer.zero_grad()
             local_loss.backward()
             for local_para, global_para in zip(local_net.parameters(), global_net.parameters()):
@@ -183,6 +197,7 @@ class A3CWorker(mp.Process):
             next_state = torch.tensor(self.next_state).float().unsqueeze(0)
             value = self.critic(next_state).squeeze().detach().numpy()
 
+        # todo: add parameter: gamma: 0.99
         discount_rewards = discount_sum(rewards.squeeze(dim=1).numpy(), 0.99, value=value)
         # discount_rewards = torch.from_numpy(np.vstack(self.discount_rewards)).float()
         discount_rewards = torch.tensor(discount_rewards).float()
@@ -286,7 +301,7 @@ class A3C(Agent):
 
         ax.legend(loc='lower right')
         name = f'result of {self.__class__.__name__} solving {self.env_id}'
-        if self.run != '':
+        if self.run != '':  # distinguish different run
             name += f' ({self.run}th run)'
         ax.set_title(name)
         plt.savefig(os.path.join(self.results_path, name))
