@@ -113,6 +113,7 @@ def get_base_config():
 
         # ##### parameters for A3C ##### #
         'process_num': None,
+        'learn_interval': 5,
     }
 
 

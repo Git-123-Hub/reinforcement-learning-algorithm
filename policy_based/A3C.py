@@ -25,9 +25,9 @@ class A3CWorker(mp.Process):
     """A3C worker that interacts with environment asynchronously for an episode"""
 
     def __init__(self, env_id, global_actor, global_critic, actor_optimizer, critic_optimizer,
-                 global_episode_num, total_episode_num, length,
-                 episode_rewards, running_rewards, window: int,
-                 n: int, gamma: float, render: bool, run_num, policy_path):
+                 global_episode_num, length,
+                 episode_rewards, running_rewards,
+                 n: int, config: dict):
         """
         initialize the worker
         :param env_id: used to make the env
@@ -37,16 +37,10 @@ class A3CWorker(mp.Process):
         :param critic_optimizer: optimizer for global critic
         :param global_episode_num: a shared int to indicate the number of episodes that have been performed,
                                    i.e. the sum of episodes num that have been performed by all the workers
-        :param total_episode_num: max episode num that will be performed by all workers
         :param length: a shared array to record the length(total steps) of each episode
         :param episode_rewards: a shared array to record episode reward of each episode
         :param running_rewards: a shared array to record running average reward of `episode_rewards`
-        :param window: const that will be used to calculate running_rewards
         :param n: use to specify each worker's name
-        :param gamma: discount_factor, used when calculate discount cumsum of reward
-        :param render: determine whether render the env or not, if True, only render worker-1
-        :param run_num: used to specify the current run_num when train for multiple runs
-        :param policy_path: path to store policies that will be stored
         """
         super(A3CWorker, self).__init__()
         # setup env
@@ -74,7 +68,7 @@ class A3CWorker(mp.Process):
         self.critic = deepcopy(self.global_critic)
 
         self.global_episode_num = global_episode_num
-        self.total_episode_num = total_episode_num
+        self.total_episode_num = config['total_episode_num']
         self.current_episode_num = 0
         # NOTE: we also maintain `current_episode_num` so that we can always know the number of current episode
         # it's not the global value of that moment, which might have been changed by other workers
@@ -83,12 +77,14 @@ class A3CWorker(mp.Process):
 
         self.episode_rewards = episode_rewards
         self.running_rewards = running_rewards
-        self.window = window
+        self.window = config['window']
 
-        self.replayMemory = EpisodicReplayMemory(gamma)
-        self.render = render
-        self.policy_path = policy_path
-        self.run_num = run_num
+        self.gamma = config['discount_factor']  # used to calculate discounted cumsum
+        self.replayMemory = EpisodicReplayMemory(self.gamma)
+        self.render = config['render']
+        self.policy_path = config['policy_path']
+        self.run_num = config['run_num']
+        self.learn_interval = config['learn_interval']
 
     def episode_reset(self):
         """operation before an episode starts"""
@@ -168,13 +164,16 @@ class A3CWorker(mp.Process):
 
     def save_experience(self):
         """during the procedure of training, store trajectory for future learning"""
-        self.reward = (self.reward + 8.1) / 8.1
+        # it seems that reward normalize did help Pendulum to learn a better result
+        # https://github.com/MorvanZhou/pytorch-A3C/blob/master/continuous_A3C.py#L95
+        if self.env_id == 'Pendulum-v0':
+            self.reward = (self.reward + 8.1) / 8.1
         experience = (self.state, self.action, self.reward, self.state_value, self.log_prob)
         self.replayMemory.add(experience)
 
     def learn(self):
         # only start to learn when episode stops or collected a trajectory of given length
-        if not (self.done or len(self.replayMemory) == 5):
+        if not (self.done or len(self.replayMemory) == self.learn_interval):
             return
 
         def update(local_net, local_loss, global_net, global_optimizer):
@@ -197,8 +196,7 @@ class A3CWorker(mp.Process):
             next_state = torch.tensor(self.next_state).float().unsqueeze(0)
             value = self.critic(next_state).squeeze().detach().numpy()
 
-        # todo: add parameter: gamma: 0.99
-        discount_rewards = discount_sum(rewards.squeeze(dim=1).numpy(), 0.99, value=value)
+        discount_rewards = discount_sum(rewards.squeeze(dim=1).numpy(), self.gamma, value=value)
         # discount_rewards = torch.from_numpy(np.vstack(self.discount_rewards)).float()
         discount_rewards = torch.tensor(discount_rewards).float()
 
@@ -245,7 +243,7 @@ class A3C(Agent):
         self.running_rewards = mp.Array('d', self.episode_num)  # record running reward of each episode
 
         self.global_actor = self._actor(self.state_dim, self.action_dim, self.config.get('actor_hidden_layer'),
-                                        self.max_action)
+                                        max_action=self.max_action)
         self.global_critic = self._critic(self.state_dim, self.config.get('critic_hidden_layer'),
                                           activation=self.config.get('critic_activation'))
 
@@ -264,11 +262,23 @@ class A3C(Agent):
 
     def train(self):
         render = True if self.config.get('render') in ['train', 'both'] else False
+
+        # set up all the const that will be used in A3CWorker
+        worker_config = {
+            'total_episode_num': self.episode_num,
+            # tell the worker all the episodes that need to run, so that it knows when to stop
+            'window': self.window,  # used to calculate running rewards
+            'discount_factor': self.config.get('discount_factor'),  # used when calculate discount cumsum of reward
+            'render': render,  # determine whether render the env or not, if True, only render worker-1
+            'run_num': self.run,  # used to specify the current run_num when train for multiple runs
+            'policy_path': self.policy_path,  # path to store policies that will be saved
+            'learn_interval': self.config.get('learn_interval'),  # the agent learn every `5` steps
+        }
         workers = [A3CWorker(self.env_id,
                              self.global_actor, self.global_critic, self.actor_optimizer, self.critic_optimizer,
-                             self.current_episode, self.episode_num, self.length,
-                             self.rewards, self.running_rewards, self.window,
-                             n + 1, self.config.get('discount_factor'), render, self.run, self.policy_path)
+                             self.current_episode, self.length,
+                             self.rewards, self.running_rewards,
+                             n + 1, worker_config)
                    for n in range(self.process_num)]
 
         [worker.start() for worker in workers]

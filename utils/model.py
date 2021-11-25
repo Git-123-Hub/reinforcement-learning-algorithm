@@ -130,13 +130,15 @@ class DiscreteStochasticActor(MLP):
 class ContinuousStochasticActor(MLP):
     """stochastic actor in a `continuous` scenario where action is sampled from Gaussian distribution constructed"""
 
-    def __init__(self, state_dim, action_dim, hidden_layer=None, *, activation=nn.ReLU()):
+    def __init__(self, state_dim, action_dim, hidden_layer=None, *, activation=nn.ReLU(), max_action=1):
         """stochastic actor that take state as input and output mean and log_std of the action distribution"""
         super(ContinuousStochasticActor, self).__init__(state_dim, hidden_layer[-1], hidden_layer[:-1],
                                                         activation=activation)
 
         self.mean_output = nn.Linear(hidden_layer[-1], action_dim)
         self.log_std_output = nn.Linear(hidden_layer[-1], action_dim)
+
+        self.max_action = max_action
 
     def forward(self, state):
         """The action is sampled from the Gaussian distribution using mean and log_std from the network"""
@@ -148,7 +150,7 @@ class ContinuousStochasticActor(MLP):
         # (https://github.com/rail-berkeley/rlkit/blob/master/rlkit/torch/sac/policies/gaussian_policy.py)
         std = torch.exp(log_std)
         # NOTE that the output is a distribution
-        return Normal(mean, std)
+        return Normal(mean * self.max_action, std)
 
 
 # todo: refactor this
@@ -169,7 +171,7 @@ class ContinuousStochasticActorFixStd(nn.Module):
         for i in range(len(hidden_layer) - 1):
             modules.append(nn.Linear(hidden_layer[i], hidden_layer[i + 1]))
             if i != len(hidden_layer) - 2:  # the last layer don't need an activation function
-                modules.append(nn.ReLU6())
+                modules.append(nn.ReLU())
 
         modules.append(nn.Tanh())
         self.net = nn.Sequential(*modules)

@@ -11,6 +11,20 @@ from utils.const import get_base_config
 from utils.model import DeterministicActor, StateActionCritic, ContinuousStochasticActor, StateCritic, \
     ContinuousStochasticActorFixStd
 
+
+class ModifyReward(gym.Wrapper):
+    def __init__(self, old_env):
+        super(ModifyReward, self).__init__(old_env)
+        self.env = old_env
+
+    def step(self, action):
+        next_state, reward, done, info = self.env.step(action)
+        reward = (reward + 8.1) / 8.1
+        # NOTE: this reward shaping is taken from A3C implementation of MorvanZhou
+        # https://github.com/MorvanZhou/pytorch-A3C/blob/master/continuous_A3C.py#L95
+        return next_state, reward, done, info
+
+
 if __name__ == '__main__':
     # NOTE that there is no goal for Pendulum-v0, but as you can see in the result, the agent did learn something
     env = gym.make('Pendulum-v0')
@@ -54,11 +68,11 @@ if __name__ == '__main__':
     agent = PPO(env, ContinuousStochasticActorFixStd, StateCritic, config)
     # agent.train()
 
-    config['episode_num'] = 30
-    config['actor_hidden_layer'] = [128, 128]
-    config['critic_hidden_layer'] = [128, 128]
-    config['process_num'] = 8
-    agent = A3C(env, ContinuousStochasticActorFixStd, StateCritic, config)
+    config['episode_num'] = 3000
+    config['actor_hidden_layer'] = [128, 64]
+    config['critic_hidden_layer'] = [128, 64]
+    # config['process_num'] = 8
+    agent = A3C(env, ContinuousStochasticActor, StateCritic, config)
     # agent.train()
     trainer = Trainer(agent, 3)
     trainer.train()
