@@ -27,7 +27,7 @@ class A3CWorker(mp.Process):
     def __init__(self, env_id, global_actor, global_critic, actor_optimizer, critic_optimizer,
                  global_episode_num, length,
                  episode_rewards, running_rewards,
-                 n: int, config: dict):
+                 n: int, config: dict, worker_grad):
         """
         initialize the worker
         :param env_id: used to make the env
@@ -86,6 +86,8 @@ class A3CWorker(mp.Process):
         self.run_num = config['run_num']
         self.learn_interval = config['learn_interval']
 
+        self.worker_grad = worker_grad
+
     def episode_reset(self):
         """operation before an episode starts"""
         self.current_episode_num = deepcopy(self.global_episode_num.value)
@@ -94,6 +96,11 @@ class A3CWorker(mp.Process):
         # copy from the global network
         self.actor.load_state_dict(self.global_actor.state_dict())
         self.critic.load_state_dict(self.global_critic.state_dict())
+
+        print(f'{self.current_episode_num}th episode, actor weight: {self.global_actor.net[0].weight[0]}')
+        print(f'{self.current_episode_num}th episode, critic weight: {self.global_critic.net[0].weight[0]}')
+        print(f'{self.current_episode_num}th episode, actor weight: {self.actor.net[0].weight[0]}')
+        print(f'{self.current_episode_num}th episode, critic weight: {self.critic.net[0].weight[0]}')
 
         # todo: should each process has its own optimizer
         # self.actor_optimizer = Adam(self.global_actor.parameters(), lr=1e-3)
@@ -176,18 +183,6 @@ class A3CWorker(mp.Process):
         if not (self.done or len(self.replayMemory) == self.learn_interval):
             return
 
-        def update(local_net, local_loss, global_net, global_optimizer):
-            """
-            calculate gradient of `local_net` using `local_loss`
-            copy gradient to `global_net`
-            optimize `global_net` using `global_optimizer`
-            """
-            global_optimizer.zero_grad()
-            local_loss.backward()
-            for local_para, global_para in zip(local_net.parameters(), global_net.parameters()):
-                global_para._grad = local_para.grad
-            global_optimizer.step()
-
         states, actions, rewards, state_values, log_probs, advantages, _ = self.replayMemory.fetch()
 
         if self.done:
@@ -205,14 +200,55 @@ class A3CWorker(mp.Process):
         actor_loss = log_probs * (discount_rewards - state_values.detach())
         actor_loss = -actor_loss.mean()
         # actor_loss = -(log_probs * advantages).mean()
-        update(self.actor, actor_loss, self.global_actor, self.actor_optimizer)
-        self.actor.load_state_dict(self.global_actor.state_dict())
 
         # calculate loss for critic
         critic_loss = F.mse_loss(discount_rewards, state_values, reduction='mean')
-        update(self.critic, critic_loss, self.global_critic, self.critic_optimizer)
-        # self.critic = deepcopy(self.global_critic)
+
+        self.worker_grad.put({
+            'actor': self._calcu_grad(self.actor, actor_loss, self.actor_optimizer),
+            'critic': self._calcu_grad(self.critic, critic_loss, self.critic_optimizer),
+        })
+
+        self.actor.load_state_dict(self.global_actor.state_dict())
         self.critic.load_state_dict(self.global_critic.state_dict())
+
+    @staticmethod
+    def _calcu_grad(local_net, local_loss, global_optimizer):
+        """ calculate gradient of `local_net` using `local_loss` """
+        global_optimizer.zero_grad()
+        local_loss.backward()
+        gradients = [param.grad.clone() for param in local_net.parameters()]
+        return gradients
+
+
+class ManageWorker(mp.Process):
+    """a manage of all the A3CWorkers, which stores all the gradient sent from worker
+    and determine when should them be applied to global network"""
+
+    def __init__(self, global_actor, global_critic, actor_optimizer, critic_optimizer, worker_grad, worker_done):
+        super(ManageWorker, self).__init__()
+        self.global_actor = global_actor
+        self.global_critic = global_critic
+        self.actor_optimizer = actor_optimizer
+        self.critic_optimizer = critic_optimizer
+
+        self.worker_grad = worker_grad
+        self.worker_done = worker_done
+
+    def run(self) -> None:
+        """manager should always keep an eye on all the gradients passed, and decide when to learn"""
+        while True:
+            gradients = self.worker_grad.get()
+            with mp.Lock():
+                self.actor_optimizer.zero_grad()
+                for grads, params in zip(gradients['actor'], self.global_actor.parameters()):
+                    params._grad = grads  # maybe need to do grads.clone()
+                self.actor_optimizer.step()
+
+                self.critic_optimizer.zero_grad()
+                for grads, params in zip(gradients['critic'], self.global_critic.parameters()):
+                    params._grad = grads  # maybe need to do grads.clone()
+                self.critic_optimizer.step()
 
 
 class A3C(Agent):
@@ -225,7 +261,7 @@ class A3C(Agent):
         self._critic = critic
 
         self.process_num = self.config.get('process_num')
-        if self.process_num is None: self.process_num = mp.cpu_count()
+        if self.process_num is None: self.process_num = mp.cpu_count() - 2
 
         self.logger = setup_logger('a3c.log', name='a3cTraining')
 
@@ -242,6 +278,10 @@ class A3C(Agent):
         self.rewards = mp.Array('d', self.episode_num)  # record reward of each episode
         self.running_rewards = mp.Array('d', self.episode_num)  # record running reward of each episode
 
+        self.worker_grads = mp.Queue()  # shared queue to store all the gradients from each worker
+        # todo: length of worker done should be process num
+        self.worker_done = mp.Array('d', 2)
+
         self.global_actor = self._actor(self.state_dim, self.action_dim, self.config.get('actor_hidden_layer'),
                                         max_action=self.max_action)
         self.global_critic = self._critic(self.state_dim, self.config.get('critic_hidden_layer'),
@@ -254,14 +294,23 @@ class A3C(Agent):
         self.global_critic.share_memory()
 
         # todo: is share optim necessary
-        self.actor_optimizer = SharedAdam(self.global_actor.parameters(), lr=1e-4, betas=(0.95, 0.999))
-        self.critic_optimizer = SharedAdam(self.global_critic.parameters(), lr=1e-4, betas=(0.95, 0.999))
+        self.actor_optimizer = SharedAdam(self.global_actor.parameters(),
+                                          lr=self.config['learning_rate'], betas=(0.95, 0.999))
+        self.critic_optimizer = SharedAdam(self.global_critic.parameters(),
+                                           lr=self.config['learning_rate'], betas=(0.95, 0.999))
         # self.actor_optimizer = Adam(self.global_actor.parameters(), lr=self.config.get('learning_rate', 1e-3))
         # self.critic_optimizer = Adam(self.global_critic.parameters(), lr=self.config.get('learning_rate', 1e-3))
         self._time = time.time()
 
     def train(self):
+        print(f'when start, actor weight: {self.global_actor.net[0].weight[0]}')
+        print(f'when start, critic weight: {self.global_critic.net[0].weight[0]}')
         render = True if self.config.get('render') in ['train', 'both'] else False
+
+        # start manager
+        manage = ManageWorker(self.global_actor, self.global_critic, self.actor_optimizer, self.critic_optimizer,
+                              self.worker_grads, self.worker_done)
+        manage.start()
 
         # set up all the const that will be used in A3CWorker
         worker_config = {
@@ -278,12 +327,17 @@ class A3C(Agent):
                              self.global_actor, self.global_critic, self.actor_optimizer, self.critic_optimizer,
                              self.current_episode, self.length,
                              self.rewards, self.running_rewards,
-                             n + 1, worker_config)
+                             n + 1, worker_config, self.worker_grads)
                    for n in range(self.process_num)]
 
         [worker.start() for worker in workers]
 
         [worker.join() for worker in workers]
+
+        manage.kill()
+
+        print(f'when stop, actor weight: {self.global_actor.net[0].weight[0]}')
+        print(f'when stop, critic weight: {self.global_critic.net[0].weight[0]}')
 
         # determine whether the agent has solved the problem
         episode = np.argmax(np.array(self.running_rewards) >= self.goal)
