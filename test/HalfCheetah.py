@@ -13,7 +13,7 @@ from utils.model import DeterministicActor, StateActionCritic, ContinuousStochas
 
 if __name__ == '__main__':
     env = gym.make('HalfCheetah-v3')
-    config = get_base_config()
+    config = Config()
     config['results'] = './HalfCheetah_results'
     config['policy'] = './HalfCheetah_policy'
     # config['seed'] = 482307631

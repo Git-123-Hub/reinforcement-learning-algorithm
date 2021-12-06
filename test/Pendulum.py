@@ -7,7 +7,7 @@ import gym
 
 from policy_based import DDPG, TD3, PPO, A3C
 from utils import Trainer
-from utils.const import get_base_config
+from utils.const import Config
 from utils.model import DeterministicActor, StateActionCritic, ContinuousStochasticActor, StateCritic, \
     ContinuousStochasticActorFixStd
 
@@ -28,7 +28,7 @@ class ModifyReward(gym.Wrapper):
 if __name__ == '__main__':
     # NOTE that there is no goal for Pendulum-v0, but as you can see in the result, the agent did learn something
     env = gym.make('Pendulum-v0')
-    config = get_base_config()
+    config = Config()
     config['results'] = './Pendulum_results'
     config['policy'] = './Pendulum_policy'
     config['seed'] = 103423575

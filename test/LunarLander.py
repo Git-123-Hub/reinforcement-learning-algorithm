@@ -6,14 +6,14 @@
 import gym
 
 from policy_based import REINFORCE, REINFORCE_BASELINE
-from utils.const import get_base_config
+from utils.const import Config
 from utils.model import QNet, DiscreteStochasticActor, StateCritic
 from utils.util import compare
 from value_based import DDQN, DDQN_PER, DQN, DuelingQNet
 
 if __name__ == '__main__':
     env = gym.make('LunarLander-v2')
-    config = get_base_config()
+    config = Config()
     config['results'] = './LunarLander_results'
     config['policy'] = './LunarLander_policy'
 

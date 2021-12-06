@@ -12,8 +12,8 @@ import torch
 class DDQN_PER(DDQN):
     def __init__(self, env, Q_net, config):
         super(DDQN_PER, self).__init__(env, Q_net, config)
-        self.replayMemory = prioritizedMemory(self.config['memory_capacity'], self.config['batch_size'],
-                                              self.config['alpha'], self.config['beta'])
+        self.replayMemory = prioritizedMemory(self.config.memory_capacity, self.config.batch_size,
+                                              self.config.alpha, self.config.beta)
 
     def episode_reset(self):
         """implement parameter(alpha, beta) decay before episode starts"""
@@ -33,7 +33,7 @@ class DDQN_PER(DDQN):
 
         current_state_value = self.Q(states).gather(1, actions.long())
         next_state_value = self.get_next_state_value(next_states)
-        target_value = rewards + self.config.get('discount_factor', 0.99) * next_state_value * (1 - dones)
+        target_value = rewards + self.config.gamma * next_state_value * (1 - dones)
 
         # update priority with td-error
         td_errors = target_value - current_state_value

@@ -16,7 +16,7 @@ import numpy as np
 import torch
 
 from utils.util import setup_logger, initial_folder
-from utils.const import Color, DefaultGoal
+from utils.const import Color, DefaultGoal, Config
 
 
 # NOTE that this is a Abstract Class for agent, a subclass will have to implement following method:
@@ -28,7 +28,7 @@ class Agent(abc.ABC):
     Wrap gym.Env with some data structure to record the performance of the algorithm.
     """
 
-    def __init__(self, env: gym.Env, config: dict):
+    def __init__(self, env: gym.Env, config: Config):
         # set up environment and get some base information about this environment
         self.env = env
         self.env_id = self.env.unwrapped.spec.id
@@ -54,13 +54,14 @@ class Agent(abc.ABC):
         self.logger = setup_logger(self.__class__.__name__ + '_training.log', name='training_data')
 
         # path to store some data
-        self.results_path = self.config.get('results', './results')  # path to store graph and data
-        initial_folder(self.results_path, clear=self.config.get('clear_result', False))
-        self.policy_path = self.config.get('policy', './policy')  # path to store the network trained
-        initial_folder(self.policy_path, clear=self.config.get('clear_policy', False))
+        # todo: change folder structure
+        self.results_path = self.config.results  # path to store graph and data
+        initial_folder(self.results_path, clear=self.config.clear_result)
+        self.policy_path = self.config.policy  # path to store the network trained
+        initial_folder(self.policy_path, clear=self.config.clear_policy)
 
-        self.run_num = self.config.get('run_num', 5)  # total run num
-        self.episode_num = self.config.get('episode_num', 1000)  # episode num of each run
+        self.run_num = self.config.run_num  # total run num
+        self.episode_num = self.config.episode_num  # episode num of each run
 
         self._run, self._episode = None, None
         # current run_num and episode_num during training
@@ -87,7 +88,7 @@ class Agent(abc.ABC):
         # record the time of every run.
         # record start time in `self.run_reset()`, print program running time after every run.
 
-        self._global_seed = self.config.get('seed', None)
+        self._global_seed = self.config.seed
         # the 'seed' specified in config is the global seed of the training
         # if provided, we use it to generate a list of random seeds, they will be used in each run
         if self._global_seed is not None:
@@ -201,7 +202,7 @@ class Agent(abc.ABC):
             self.select_action()
             # execute action
             self.next_state, self.reward, self.done, _ = self.env.step(self.action)
-            if self.config.get('render') in ['train', 'both']: self.env.render()
+            if self.config.render in ['train', 'both']: self.env.render()
 
             self.length[self._run][self._episode] += 1
             self.rewards[self._run][self._episode] += self.reward
@@ -358,7 +359,7 @@ class Agent(abc.ABC):
                 done = False
 
                 while not done:  # test for an episode
-                    if self.config.get('render') in ['test', 'both']: env.render()
+                    if self.config.render in ['test', 'both']: env.render()
                     # time.sleep(0.01)
 
                     action = self.test_action(state)

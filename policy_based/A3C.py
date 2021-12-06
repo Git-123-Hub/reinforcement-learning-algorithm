@@ -218,13 +218,13 @@ class A3CWorker(mp.Process):
 class A3C(Agent):
     def __init__(self, env, actor, critic, config):
         super(A3C, self).__init__(env, config)
-        self.results_path = self.config.get('results', './results')  # path to store graph and data
-        initial_folder(self.results_path, clear=self.config.get('clear_result', False))
+        self.results_path = self.config.results  # path to store graph and data
+        initial_folder(self.results_path, clear=self.config.clear_result)
         self.policy_path = initial_folder(self.results_path + '/policy saved', clear=False)
         self._actor = actor
         self._critic = critic
 
-        self.process_num = self.config.get('process_num')
+        self.process_num = self.config.process_num
         if self.process_num is None: self.process_num = mp.cpu_count()
 
         self.logger = setup_logger('a3c.log', name='a3cTraining')
@@ -242,10 +242,10 @@ class A3C(Agent):
         self.rewards = mp.Array('d', self.episode_num)  # record reward of each episode
         self.running_rewards = mp.Array('d', self.episode_num)  # record running reward of each episode
 
-        self.global_actor = self._actor(self.state_dim, self.action_dim, self.config.get('actor_hidden_layer'),
+        self.global_actor = self._actor(self.state_dim, self.action_dim, self.config.actor_hidden_layer,
                                         max_action=self.max_action)
-        self.global_critic = self._critic(self.state_dim, self.config.get('critic_hidden_layer'),
-                                          activation=self.config.get('critic_activation'))
+        self.global_critic = self._critic(self.state_dim, self.config.critic_hidden_layer,
+                                          activation=self.config.critic_activation)
 
         self.global_actor.init()
         self.global_critic.init()
@@ -256,23 +256,23 @@ class A3C(Agent):
         # todo: is share optim necessary
         self.actor_optimizer = SharedAdam(self.global_actor.parameters(), lr=1e-4, betas=(0.95, 0.999))
         self.critic_optimizer = SharedAdam(self.global_critic.parameters(), lr=1e-4, betas=(0.95, 0.999))
-        # self.actor_optimizer = Adam(self.global_actor.parameters(), lr=self.config.get('learning_rate', 1e-3))
-        # self.critic_optimizer = Adam(self.global_critic.parameters(), lr=self.config.get('learning_rate', 1e-3))
+        # self.actor_optimizer = Adam(self.global_actor.parameters(), lr=self.config.learning_rate)
+        # self.critic_optimizer = Adam(self.global_critic.parameters(), lr=self.config.learning_rate)
         self._time = time.time()
 
     def train(self):
-        render = True if self.config.get('render') in ['train', 'both'] else False
+        render = True if self.config.render in ['train', 'both'] else False
 
         # set up all the const that will be used in A3CWorker
         worker_config = {
             'total_episode_num': self.episode_num,
             # tell the worker all the episodes that need to run, so that it knows when to stop
             'window': self.window,  # used to calculate running rewards
-            'discount_factor': self.config.get('discount_factor'),  # used when calculate discount cumsum of reward
+            'discount_factor': self.config.gamma,  # used when calculate discount cumsum of reward
             'render': render,  # determine whether render the env or not, if True, only render worker-1
             'run_num': self.run,  # used to specify the current run_num when train for multiple runs
             'policy_path': self.policy_path,  # path to store policies that will be saved
-            'learn_interval': self.config.get('learn_interval'),  # the agent learn every `5` steps
+            'learn_interval': self.config.learn_interval,  # the agent learn every `5` steps
         }
         workers = [A3CWorker(self.env_id,
                              self.global_actor, self.global_critic, self.actor_optimizer, self.critic_optimizer,
@@ -320,7 +320,7 @@ class A3C(Agent):
     def load_policy(self, file):
         """load the parameter saved to value-network or policy-network for testing"""
         if self.global_actor is None:
-            self.global_actor = self._actor(self.state_dim, self.action_dim, self.config.get('actor_hidden_layer'))
+            self.global_actor = self._actor(self.state_dim, self.action_dim, self.config.actor_hidden_layer)
         self.global_actor.load_state_dict(torch.load(file))
         self.global_actor.eval()
 

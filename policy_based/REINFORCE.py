@@ -23,8 +23,8 @@ class REINFORCE(Agent):
 
     def run_reset(self):
         super(REINFORCE, self).run_reset()
-        self.policy = self._policy(self.state_dim, self.action_dim, self.config.get('policy_hidden_layer'))
-        self.optimizer = optim.Adam(self.policy.parameters(), lr=self.config.get('learning_rate', 0.001))
+        self.policy = self._policy(self.state_dim, self.action_dim, self.config.policy_hidden_layer)
+        self.optimizer = optim.Adam(self.policy.parameters(), lr=self.config.learning_rate)
 
     def episode_reset(self):
         super(REINFORCE, self).episode_reset()
@@ -43,7 +43,7 @@ class REINFORCE(Agent):
         if not self.done:  # only learn when an episode finishes
             return
 
-        returns = discount_sum(self.episode_reward, self.config.get('discount_factor', 0.99), normalize=True)
+        returns = discount_sum(self.episode_reward, self.config.gamma, normalize=True)
 
         # update policy
         loss = torch.cat(self.episode_log_prob) * torch.from_numpy(-returns)
@@ -61,7 +61,7 @@ class REINFORCE(Agent):
 
     def load_policy(self, file):
         if self.policy is None:
-            self.policy = self._policy(self.state_dim, self.action_dim, self.config.get('policy_hidden_layer'))
+            self.policy = self._policy(self.state_dim, self.action_dim, self.config.policy_hidden_layer)
         self.policy.load_state_dict(torch.load(file))
         self.policy.eval()
 

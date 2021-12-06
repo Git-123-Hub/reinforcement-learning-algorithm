@@ -40,11 +40,11 @@ class REINFORCE_BASELINE(Agent):
 
     def run_reset(self):
         super(REINFORCE_BASELINE, self).run_reset()
-        self.actor = self._actor(self.state_dim, self.action_dim, self.config.get('actor_hidden_layer'))
-        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.config.get('learning_rate', 0.001))
+        self.actor = self._actor(self.state_dim, self.action_dim, self.config.actor_hidden_layer)
+        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.config.learning_rate)
 
-        self.critic = self._critic(self.state_dim, self.config.get('critic_hidden_layer'))
-        self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=self.config.get('learning_rate', 0.001))
+        self.critic = self._critic(self.state_dim, self.config.critic_hidden_layer)
+        self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=self.config.learning_rate)
 
     def episode_reset(self):
         super(REINFORCE_BASELINE, self).episode_reset()
@@ -65,10 +65,11 @@ class REINFORCE_BASELINE(Agent):
         if not self.done:  # only learn when an episode finishes
             return
 
-        returns = discount_sum(self.episode_reward, self.config.get('discount_factor', 0.99), normalize=True)
+        returns = discount_sum(self.episode_reward, self.config.discount_factor, normalize=True)
+        returns = torch.from_numpy(returns).float()
 
         # update actor
-        advantage_list = returns - torch.cat(self.episode_state_value).squeeze()
+        advantage_list = returns - torch.cat(self.episode_state_value).squeeze(1)
         policy_loss_list = torch.cat(self.episode_log_prob) * -advantage_list.detach()  # note the negative sign
         loss = policy_loss_list.sum()
         self.logger.info(f'actor loss: {loss.item()}')
@@ -91,7 +92,7 @@ class REINFORCE_BASELINE(Agent):
 
     def load_policy(self, file):
         if self.actor is None:
-            self.actor = self._actor(self.state_dim, self.action_dim, self.config.get('actor_hidden_layer'))
+            self.actor = self._actor(self.state_dim, self.action_dim, self.config.actor_hidden_layer)
         self.actor.load_state_dict(torch.load(file))
         self.actor.eval()
 

@@ -12,7 +12,7 @@ import torch.nn as nn
 from torch.distributions import Categorical
 
 from policy_based import REINFORCE, REINFORCE_BASELINE
-from utils.const import get_base_config
+from utils.const import Config
 from utils.model import StateActionCritic, DiscreteStochasticActor, StateCritic, QNet
 from utils.util import compare
 from value_based import DDQN, DDQN_PER, DQN, DuelingQNet
@@ -51,7 +51,7 @@ if __name__ == '__main__':
     env = ModifyReward(gym.make('MountainCar-v0'))
     # env = gym.make('MountainCar-v0')
 
-    config = get_base_config()
+    config = Config()
     config['results'] = './Mountain_results'
     config['policy'] = './Mountain_policy'
 

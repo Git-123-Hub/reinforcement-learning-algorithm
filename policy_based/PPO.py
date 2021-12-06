@@ -11,11 +11,12 @@ import torch.nn.functional as F
 from torch import optim
 
 from utils import Agent, EpisodicReplayMemory
+from utils.const import Config
 
 
 class PPO(Agent):
 
-    def __init__(self, env: gym.Env, actor, critic, config: dict):
+    def __init__(self, env: gym.Env, actor, critic, config: Config):
         super().__init__(env, config)
         self.state_value, self.log_prob = None, None
         # these two value should also be stored in replay memory for learning
@@ -26,16 +27,16 @@ class PPO(Agent):
         self._critic = critic
         self.critic, self.critic_optimizer = None, None
 
-        self.replayMemory = EpisodicReplayMemory(self.config.get('discount_factor', 0.99))
+        self.replayMemory = EpisodicReplayMemory(self.config.discount_factor)
 
     def run_reset(self):
         super().run_reset()
-        self.actor = self._actor(self.state_dim, self.action_dim, self.config.get('actor_hidden_layer'))
-        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.config.get('learning_rate', 1e-3))
+        self.actor = self._actor(self.state_dim, self.action_dim, self.config.actor_hidden_layer)
+        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.config.learning_rate)
 
-        self.critic = self._critic(self.state_dim, self.config.get('critic_hidden_layer'),
-                                   activation=self.config.get('critic_activation'))
-        self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=self.config.get('learning_rate', 1e-3))
+        self.critic = self._critic(self.state_dim, self.config.critic_hidden_layer,
+                                   activation=self.config.critic_activation)
+        self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=self.config.learning_rate)
 
     def select_action(self):
         with torch.no_grad():
@@ -55,14 +56,14 @@ class PPO(Agent):
         if not self.done:  # only learn when this episode terminates
             return
         states, actions, rewards, _, old_log_probs, advantages, discount_rewards = self.replayMemory.fetch()
-        for _ in range(self.config.get('training_epoch', 50)):
+        for _ in range(self.config.training_epoch):
             # update actor
             dist = self.actor(states)
             log_probs = dist.log_prob(actions).sum(dim=1, keepdim=True)  # torch.size([batch_size, 1])
             ratio = torch.exp(log_probs - old_log_probs)
             self.logger.info(f'ratio mean: {ratio.mean()}, std: {ratio.std()}, min: {ratio.min()}, max: {ratio.max()}')
 
-            clip_ratio = torch.clip(ratio, 1 - self.config['clip_ratio'], 1 + self.config['clip_ratio'])
+            clip_ratio = torch.clip(ratio, 1 - self.config.clip_ratio, 1 + self.config.clip_ratio)
             loss = -torch.min(ratio * advantages, clip_ratio * advantages).mean()
             self.logger.info(f'actor loss: {loss.item()}')
             self.actor_optimizer.zero_grad()
@@ -84,7 +85,7 @@ class PPO(Agent):
 
     def load_policy(self, file):
         if self.actor is None:
-            self.actor = self._actor(self.state_dim, self.action_dim, self.config.get('actor_hidden_layer'))
+            self.actor = self._actor(self.state_dim, self.action_dim, self.config.actor_hidden_layer)
         self.actor.load_state_dict(torch.load(file))
         self.actor.eval()
 

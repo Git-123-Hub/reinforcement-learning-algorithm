@@ -8,14 +8,14 @@
 import gym
 
 from policy_based import REINFORCE, REINFORCE_BASELINE
-from utils.const import get_base_config
+from utils.const import Config
 from utils.model import QNet, DiscreteStochasticActor, StateCritic
 from utils.util import compare
 from value_based import DDQN, DDQN_PER, DQN
 
 if __name__ == '__main__':
     env = gym.make('Acrobot-v1')
-    config = get_base_config()
+    config = Config()
 
     # base config
     config['results'] = './Acrobot_results'

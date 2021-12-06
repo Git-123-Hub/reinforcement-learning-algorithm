@@ -26,30 +26,30 @@ class DQN(Agent):
             print(f'{Color.INFO}using the dueling network{Color.END}')
 
         self.Q, self.target_Q, self.optimizer = None, None, None
-        self.replayMemory = replayMemory(self.config.get('memory_capacity', 20000), self.config.get('batch_size', 256))
+        self.replayMemory = replayMemory(self.config.memory_capacity, self.config.batch_size)
 
         self._epsilon = None  # decay according to episode number during training
 
     def run_reset(self):
         super(DQN, self).run_reset()
-        self.Q = self._Q(self.state_dim, self.action_dim, self.config.get('q_hidden_layer'))
+        self.Q = self._Q(self.state_dim, self.action_dim, self.config.q_hidden_layer)
         self.target_Q = copy.deepcopy(self.Q)
         self.optimizer = optim.Adam(self.Q.parameters(),
-                                    lr=self.config.get('learning_rate', 0.01),
+                                    lr=self.config.learning_rate,
                                     eps=1e-4)
 
     def episode_reset(self):
         super(DQN, self).episode_reset()
 
         # update epsilon decay
-        epsilon0 = self.config['epsilon']
-        min_epsilon = self.config.get('min_epsilon', 0.01)
+        epsilon0 = self.config.epsilon
+        min_epsilon = self.config.min_epsilon
         if self._episode == 0:  # start with initial value
             self._epsilon = epsilon0
         elif self.running_rewards[self._run][self._episode - 1] >= self.goal:  # reaches goal
             self._epsilon = min_epsilon
         else:
-            self._epsilon *= self.config.get('epsilon_decay_rate', 0.99)  # exponential decay
+            self._epsilon *= self.config.epsilon_decay_rate  # exponential decay
             self._epsilon = max(self._epsilon, min_epsilon)
 
     def select_action(self):
@@ -76,7 +76,7 @@ class DQN(Agent):
 
         current_state_value = self.Q(states).gather(1, actions.long())
         next_state_value = self.get_next_state_value(next_states)
-        target_value = rewards + self.config.get('discount_factor', 0.99) * next_state_value * (1 - dones)
+        target_value = rewards + self.config.gamma * next_state_value * (1 - dones)
 
         loss = F.mse_loss(current_state_value, target_value)
         self.logger.info(f'loss: {loss.item()}')
@@ -90,14 +90,15 @@ class DQN(Agent):
     def gradient_descent(self, loss):
         self.optimizer.zero_grad()
         loss.backward()
-        clip_grad = self.config.get('clip_grad', None)
+        clip_grad = self.config.clip_grad
         if clip_grad: torch.nn.utils.clip_grad_norm_(self.Q.parameters(), clip_grad)
         self.optimizer.step()
 
     def update_target_network(self):
-        if self.length[self._run].sum() % self.config.get('Q_update_interval', 1) == 0:
-            if 'tau' in self.config:
-                soft_update(self.Q, self.target_Q, self.config.get('tau', 0.01))
+        if self.length[self._run].sum() % self.config.update_interval == 0:
+            tau = self.config.tau
+            if tau is not None:
+                soft_update(self.Q, self.target_Q, tau)
             else:
                 self.target_Q = copy.deepcopy(self.Q)
 
@@ -108,7 +109,7 @@ class DQN(Agent):
             torch.save(self.Q.state_dict(), os.path.join(self.policy_path, name))
 
     def load_policy(self, file):
-        if self.Q is None: self.Q = self._Q(self.state_dim, self.action_dim, self.config.get('q_hidden_layer'))
+        if self.Q is None: self.Q = self._Q(self.state_dim, self.action_dim, self.config.q_hidden_layer)
         self.Q.load_state_dict(torch.load(file))
         self.Q.eval()
 

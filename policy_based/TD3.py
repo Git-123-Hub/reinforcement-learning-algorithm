@@ -28,23 +28,23 @@ class TD3(Agent):
         self.critic1, self.target_critic1, self.critic1_optimizer = None, None, None
         self.critic2, self.target_critic2, self.critic2_optimizer = None, None, None
 
-        self.replayMemory = replayMemory(self.config.get('memory_capacity', 20000), self.config.get('batch_size', 256))
+        self.replayMemory = replayMemory(self.config.memory_capacity, self.config.batch_size)
 
     def run_reset(self):
         super(TD3, self).run_reset()
 
-        self.actor = self._actor(self.state_dim, self.action_dim, self.config.get('actor_hidden_layer'),
+        self.actor = self._actor(self.state_dim, self.action_dim, self.config.actor_hidden_layer,
                                  max_action=self.max_action)
         self.target_actor = deepcopy(self.actor)
-        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.config.get('learning_rate', 0.001))
+        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.config.learning_rate)
 
-        self.critic1 = self._critic(self.state_dim, self.action_dim, self.config.get('critic_hidden_layer'))
+        self.critic1 = self._critic(self.state_dim, self.action_dim, self.config.critic_hidden_layer)
         self.target_critic1 = deepcopy(self.critic1)
-        self.critic1_optimizer = optim.Adam(self.critic1.parameters(), lr=self.config.get('learning_rate', 0.001))
+        self.critic1_optimizer = optim.Adam(self.critic1.parameters(), lr=self.config.learning_rate)
 
-        self.critic2 = self._critic(self.state_dim, self.action_dim, self.config.get('critic_hidden_layer'))
+        self.critic2 = self._critic(self.state_dim, self.action_dim, self.config.critic_hidden_layer)
         self.target_critic2 = deepcopy(self.critic2)
-        self.critic2_optimizer = optim.Adam(self.critic2.parameters(), lr=self.config.get('learning_rate', 0.001))
+        self.critic2_optimizer = optim.Adam(self.critic2.parameters(), lr=self.config.learning_rate)
 
     def select_action(self):
         self.actor.eval()
@@ -56,10 +56,10 @@ class TD3(Agent):
         self.action += self.get_action_noise(self.action.size)
 
     def get_action_noise(self, size):
-        noise_mean = self.config.get('noise_mean', 0)
-        noise_std = self.config.get('noise_std', 1) * self.max_action
-        noise_clip = self.config.get('noise_clip', 1)
-        noise_factor = self.config.get('noise_factor', 0.2) * self.max_action
+        noise_mean = self.config.noise_mean
+        noise_std = self.config.noise_std * self.max_action
+        noise_clip = self.config.noise_clip
+        noise_factor = self.config.noise_factor * self.max_action
         noise = np.random.normal(noise_mean, noise_std, size=size) * noise_factor
         return np.clip(noise, noise_clip * self.min_action, noise_clip * self.max_action)
 
@@ -78,7 +78,7 @@ class TD3(Agent):
         target_critic1_value = self.target_critic1(next_states, next_actions)
         target_critic2_value = self.target_critic2(next_states, next_actions)
         target_critic_value = torch.min(target_critic1_value, target_critic2_value).detach()
-        target_value = rewards + self.config.get('discount_factor', 0.99) * target_critic_value * (1 - dones)
+        target_value = rewards + self.config.gamma * target_critic_value * (1 - dones)
 
         # update critic1
         self.critic1.eval()
@@ -100,7 +100,7 @@ class TD3(Agent):
         loss.backward()
         self.critic2_optimizer.step()
 
-        if self.length[self._run].sum() % self.config.get('update_interval', 1) == 0:
+        if self.length[self._run].sum() % self.config.update_interval == 0:
             # update actor using the critic value of current state with action from actor
             loss = -self.critic1(states, self.actor(states)).mean()  # note the negative sign
             self.actor_optimizer.zero_grad()
@@ -108,9 +108,9 @@ class TD3(Agent):
             self.actor_optimizer.step()
 
             # update target network
-            soft_update(self.actor, self.target_actor, self.config.get('tau', 0.01))
-            soft_update(self.critic1, self.target_critic1, self.config.get('tau', 0.01))
-            soft_update(self.critic2, self.target_critic2, self.config.get('tau', 0.01))
+            soft_update(self.actor, self.target_actor, self.config.tau)
+            soft_update(self.critic1, self.target_critic1, self.config.tau)
+            soft_update(self.critic2, self.target_critic2, self.config.tau)
 
     def save_policy(self):
         if self._running_reward >= self.goal:
@@ -119,7 +119,7 @@ class TD3(Agent):
 
     def load_policy(self, file):
         if self.actor is None:
-            self.actor = self._actor(self.state_dim, self.action_dim, self.config.get('actor_hidden_layer'),
+            self.actor = self._actor(self.state_dim, self.action_dim, self.config.actor_hidden_layer,
                                      max_action=self.max_action)
         self.actor.load_state_dict(torch.load(file))
         self.actor.eval()

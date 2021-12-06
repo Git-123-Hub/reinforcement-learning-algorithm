@@ -25,19 +25,19 @@ class DDPG(Agent):
         self.actor, self.target_actor, self.actor_optimizer = None, None, None
         self.critic, self.target_critic, self.critic_optimizer = None, None, None
 
-        self.replayMemory = replayMemory(self.config.get('memory_capacity', 20000), self.config.get('batch_size', 256))
+        self.replayMemory = replayMemory(self.config.memory_capacity, self.config.batch_size)
 
     def run_reset(self):
         super(DDPG, self).run_reset()
 
-        self.actor = self._actor(self.state_dim, self.action_dim, self.config.get('actor_hidden_layer'),
+        self.actor = self._actor(self.state_dim, self.action_dim, self.config.actor_hidden_layer,
                                  max_action=self.max_action)
         self.target_actor = deepcopy(self.actor)
-        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.config.get('learning_rate', 0.001))
+        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.config.learning_rate)
 
-        self.critic = self._critic(self.state_dim, self.action_dim, self.config.get('critic_hidden_layer'))
+        self.critic = self._critic(self.state_dim, self.action_dim, self.config.critic_hidden_layer)
         self.target_critic = deepcopy(self.critic)
-        self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=self.config.get('learning_rate', 0.001))
+        self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=self.config.learning_rate)
 
     def select_action(self):
         self.actor.eval()
@@ -62,7 +62,7 @@ class DDPG(Agent):
         # calculate next_state_action_value using the next_action get from target_actor
         next_action = self.target_actor(next_states).detach()
         next_state_action_value = self.target_critic(next_states, next_action).detach()
-        target_value = rewards + self.config.get('discount_factor', 0.99) * next_state_action_value * (1 - dones)
+        target_value = rewards + self.config.gamma * next_state_action_value * (1 - dones)
 
         loss = F.mse_loss(current_state_action_value, target_value, reduction='mean')
         self.critic_optimizer.zero_grad()
@@ -78,9 +78,9 @@ class DDPG(Agent):
         self.actor_optimizer.step()
 
         # update target network
-        if self.length[self._run].sum() % self.config.get('Q_update_interval', 1) == 0:  # time to update
-            soft_update(self.actor, self.target_actor, self.config.get('tau', 0.01))
-            soft_update(self.critic, self.target_critic, self.config.get('tau', 0.01))
+        if self.length[self._run].sum() % self.config.update_interval == 0:  # time to update
+            soft_update(self.actor, self.target_actor, self.config.tau)
+            soft_update(self.critic, self.target_critic, self.config.tau)
 
     def save_policy(self):
         if self._running_reward >= self.goal:
@@ -89,7 +89,7 @@ class DDPG(Agent):
 
     def load_policy(self, file):
         if self.actor is None:
-            self.actor = self._actor(self.state_dim, self.action_dim, self.config.get('actor_hidden_layer'),
+            self.actor = self._actor(self.state_dim, self.action_dim, self.config.actor_hidden_layer,
                                      max_action=self.max_action)
         self.actor.load_state_dict(torch.load(file))
         self.actor.eval()
