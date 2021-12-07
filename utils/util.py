@@ -35,22 +35,14 @@ def setup_logger(filename, name=__name__):
     return logger
 
 
-def initial_folder(folder, *, clear=False):
+def initial_folder(folder):
     """
-    create folder if not exist, remove all the files in the folder if already exists
-    :param folder: path to the folder
-    :param clear: bool indicate whether clear all the file in the folder
-    :return:
+    create folder if not exist
+    :param folder: path of the folder
+    :return: this created folder
     """
     if not os.path.exists(folder):
         os.makedirs(folder)
-    elif clear:
-        for filename in os.listdir(folder):
-            file_path = os.path.join(folder, filename)
-            try:
-                os.remove(file_path)
-            except Exception as e:
-                print(f'Failed to delete {file_path}. Reason: {e}')
     return folder
 
 

@@ -68,11 +68,6 @@ class Config:
         self.results = './results'
         self.policy = './policy'
 
-        self.clear_result = False  # todo this should also be deleted
-        # determine if all the graphs and policies that have been saved should be cleared(deleted) before training start
-        self.clear_graph = False
-        self.clear_policy = False
-
         # render mode: determine whether render or not,
         # 'train' for rendering during training, 'test' for rendering during testing policy,
         # 'both' for render in both scenario, default 'None', do not render

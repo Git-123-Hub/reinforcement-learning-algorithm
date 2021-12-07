@@ -34,6 +34,7 @@ class Agent(abc.ABC):
         self.env_id = self.env.unwrapped.spec.id
         self.goal = self.env.spec.reward_threshold
         if self.goal is None: self.goal = DefaultGoal[self.env_id]
+        # todo: remove these variable to train
         self.state, self.action, self.next_state, self.reward, self.done = None, None, None, None, False
 
         # get state_dim and action_dim for initializing the network
@@ -47,18 +48,15 @@ class Agent(abc.ABC):
 
         self.config = config
 
-        # some algorithm might need a replay buffer to store experience, if needed, just initialize it
+        # some algorithms might need a replay buffer to store experience, if needed, just initialize it
         # related methods have already been implemented: reset() in `run_reset()`,  save_experience()
-        self.replayMemory = None
+        self.replay_buffer = None
 
         self.logger = setup_logger(self.__class__.__name__ + '_training.log', name='training_data')
 
         # path to store some data
-        # todo: change folder structure
-        self.results_path = self.config.results  # path to store graph and data
-        initial_folder(self.results_path, clear=self.config.clear_result)
-        self.policy_path = self.config.policy  # path to store the network trained
-        initial_folder(self.policy_path, clear=self.config.clear_policy)
+        self.result_path = initial_folder(self.config.result_path)  # path to store graph and data
+        self.policy_path = initial_folder(self.config.result_path + '/policy saved')  # path to store network parameters
 
         self.run_num = self.config.run_num  # total run num
         self.episode_num = self.config.episode_num  # episode num of each run
@@ -146,7 +144,7 @@ class Agent(abc.ABC):
         else:
             seed = None
 
-        if self.replayMemory is not None: self.replayMemory.reset()
+        if self.replay_buffer is not None: self.replay_buffer.reset()
 
         # record the start time of this run
         self._time = time.time()
@@ -190,7 +188,7 @@ class Agent(abc.ABC):
         self.plot_running_rewards()
         # save the instance of the Agent to keep all the training data
         name = self.__class__.__name__ + '_training_data.pkl'
-        path = os.path.join(self.results_path, name)
+        path = os.path.join(self.result_path, name)
         with open(path, 'wb') as f:
             pickle.dump(self, f)
 
@@ -234,9 +232,9 @@ class Agent(abc.ABC):
         some algorithms need to store experience for sampling, while others don't
         so experience is saved only if `self.replayMemory` has already been defined
         """
-        if self.replayMemory is not None:
+        if self.replay_buffer is not None:
             experience = (self.state, self.action, self.reward, self.next_state, self.done)
-            self.replayMemory.add(experience)
+            self.replay_buffer.add(experience)
 
     @abc.abstractmethod
     def learn(self):
@@ -269,7 +267,7 @@ class Agent(abc.ABC):
         ax.legend(loc='lower right')
         name = f'result of {self.__class__.__name__} solving {self.env_id}({self._run + 1}th run)'
         ax.set_title(name)
-        plt.savefig(os.path.join(self.results_path, name))
+        plt.savefig(os.path.join(self.result_path, name))
         plt.close(fig)
 
     def plot_running_rewards(self):
@@ -297,7 +295,7 @@ class Agent(abc.ABC):
 
         name = f'running reward of {self.__class__.__name__} solving {self.env_id}'
         ax.set_title(name)
-        plt.savefig(os.path.join(self.results_path, name))
+        plt.savefig(os.path.join(self.result_path, name))
         plt.close(fig)
 
     @property
@@ -392,7 +390,7 @@ class Agent(abc.ABC):
             ax.legend(loc='lower right')
             name = f'{os.path.splitext(file_name)[0]} test results'  # get filename without extension
             ax.set_title(name)
-            plt.savefig(os.path.join(self.results_path, name))
+            plt.savefig(os.path.join(self.result_path, name))
             ax.clear()
 
         plt.close(fig)
