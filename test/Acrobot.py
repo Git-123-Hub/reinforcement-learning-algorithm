@@ -18,8 +18,7 @@ if __name__ == '__main__':
     config = Config()
 
     # base config
-    config['results'] = './Acrobot_results'
-    config['policy'] = './Acrobot_policy'
+    config.result_path = './Acrobot_results'
     config['seed'] = 756170127
     config['run_num'] = 3
     config['episode_num'] = 500
@@ -53,4 +52,4 @@ if __name__ == '__main__':
     agent = REINFORCE_BASELINE(env, DiscreteStochasticActor, StateCritic, config)
     agent.train()
 
-    compare(['DQN', 'DDQN', 'DDQN_PER', 'REINFORCE', 'REINFORCE_BASELINE'], config['results'])
+    compare(['DQN', 'DDQN', 'DDQN_PER', 'REINFORCE', 'REINFORCE_BASELINE'], config.result_path)

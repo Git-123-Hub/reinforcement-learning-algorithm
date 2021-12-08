@@ -255,8 +255,10 @@ class A3C(Agent):
         self.global_critic.share_memory()
 
         # todo: is share optim necessary
-        self.actor_optimizer = SharedAdam(self.global_actor.parameters(), lr=1e-4, betas=(0.95, 0.999))
-        self.critic_optimizer = SharedAdam(self.global_critic.parameters(), lr=1e-4, betas=(0.95, 0.999))
+        self.actor_optimizer = SharedAdam(self.global_actor.parameters(), lr=self.config.learning_rate,
+                                          betas=(0.95, 0.999))
+        self.critic_optimizer = SharedAdam(self.global_critic.parameters(), lr=self.config.learning_rate,
+                                           betas=(0.95, 0.999))
         # self.actor_optimizer = Adam(self.global_actor.parameters(), lr=self.config.learning_rate)
         # self.critic_optimizer = Adam(self.global_critic.parameters(), lr=self.config.learning_rate)
 

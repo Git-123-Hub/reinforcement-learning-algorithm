@@ -18,8 +18,7 @@ if __name__ == '__main__':
     # test discrete env with CartPole
     env = gym.make('CartPole-v1')
 
-    config['results'] = './test_results'
-    config['policy'] = './test_policy'
+    config.result_path = './test_results'
 
     for agent in [DQN, DDQN, DDQN_PER]:
         agent(env, QNet, config).train()

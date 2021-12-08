@@ -17,8 +17,7 @@ if __name__ == '__main__':
     config = Config()
 
     # base config
-    config['results'] = './CartPole_results'
-    config['policy'] = './CartPole_policy'
+    config.result_path = './CartPole_results'
     config['seed'] = 5326583
     config['run_num'] = 5
     config['episode_num'] = 1000
@@ -54,4 +53,4 @@ if __name__ == '__main__':
     agent.train()
     # agent.test()
 
-    compare(['DQN', 'DDQN', 'DDQN_PER', 'REINFORCE', 'REINFORCE_BASELINE'], config['results'])
+    compare(['DQN', 'DDQN', 'DDQN_PER', 'REINFORCE', 'REINFORCE_BASELINE'], config.result_path)

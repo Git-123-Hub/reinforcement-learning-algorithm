@@ -14,8 +14,7 @@ from value_based import DDQN, DDQN_PER, DQN, DuelingQNet
 if __name__ == '__main__':
     env = gym.make('LunarLander-v2')
     config = Config()
-    config['results'] = './LunarLander_results'
-    config['policy'] = './LunarLander_policy'
+    config.result_path = './LunarLander_results'
 
     config['seed'] = 4375233
     config['run_num'] = 3
@@ -49,4 +48,4 @@ if __name__ == '__main__':
     agent = REINFORCE_BASELINE(env, DiscreteStochasticActor, StateCritic, config)
     agent.train()
 
-    compare(['DQN', 'DDQN', 'DDQN_PER', 'REINFORCE', 'REINFORCE_BASELINE'], config['results'])
+    compare(['DQN', 'DDQN', 'DDQN_PER', 'REINFORCE', 'REINFORCE_BASELINE'], config.result_path)

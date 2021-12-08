@@ -14,8 +14,7 @@ from utils.model import DeterministicActor, StateActionCritic, ContinuousStochas
 if __name__ == '__main__':
     env = gym.make('HalfCheetah-v3')
     config = Config()
-    config['results'] = './HalfCheetah_results'
-    config['policy'] = './HalfCheetah_policy'
+    config.result_path = './HalfCheetah_results'
     # config['seed'] = 482307631
     config['run_num'] = 3
     config['episode_num'] = 1000

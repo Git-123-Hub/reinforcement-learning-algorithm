@@ -52,8 +52,7 @@ if __name__ == '__main__':
     # env = gym.make('MountainCar-v0')
 
     config = Config()
-    config['results'] = './Mountain_results'
-    config['policy'] = './Mountain_policy'
+    config.result_path = './Mountain_results'
 
     config['seed'] = 4357436
     config['run_num'] = 5
@@ -81,7 +80,7 @@ if __name__ == '__main__':
     agent = DDQN_PER(env, QNet, config)
     agent.train()
 
-    compare(['DQN', 'DDQN', 'DDQN_PER'], config['results'])
+    compare(['DQN', 'DDQN', 'DDQN_PER'], config.result_path)
 
     # todo: policy based can't solve this problem
     # # policy based
@@ -96,4 +95,4 @@ if __name__ == '__main__':
     # agent = REINFORCE_BASELINE(env, DiscreteStochasticActor, StateCritic, config)
     # agent.train()
 
-    # compare(['DQN', 'DDQN', 'DDQN_PER', 'REINFORCE', 'REINFORCE_BASELINE'], config['results'])
+    # compare(['DQN', 'DDQN', 'DDQN_PER', 'REINFORCE', 'REINFORCE_BASELINE'], config.result_path)
