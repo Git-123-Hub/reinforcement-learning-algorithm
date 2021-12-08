@@ -109,6 +109,7 @@ class Config:
         self.actor_activation = nn.ReLU()
         self.critic_activation = nn.ReLU()
         self.clip_grad = None
+        self.fix_std = None
 
         # ##### TD3 ##### #
         # todo: explanation of the following parameters

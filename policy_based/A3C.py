@@ -218,9 +218,8 @@ class A3CWorker(mp.Process):
 class A3C(Agent):
     def __init__(self, env, actor, critic, config):
         super(A3C, self).__init__(env, config)
-        self.results_path = self.config.results  # path to store graph and data
-        initial_folder(self.results_path, clear=self.config.clear_result)
-        self.policy_path = initial_folder(self.results_path + '/policy saved', clear=False)
+        self.result_path = initial_folder(self.config.result_path)  # path to store graph and data
+        self.policy_path = initial_folder(self.config.result_path + '/policy saved')  # path to store network parameters
         self._actor = actor
         self._critic = critic
 
@@ -243,7 +242,8 @@ class A3C(Agent):
         self.running_rewards = mp.Array('d', self.episode_num)  # record running reward of each episode
 
         self.global_actor = self._actor(self.state_dim, self.action_dim, self.config.actor_hidden_layer,
-                                        max_action=self.max_action)
+                                        activation=self.config.actor_activation, max_action=self.max_action,
+                                        fix_std=self.config.fix_std)
         self.global_critic = self._critic(self.state_dim, self.config.critic_hidden_layer,
                                           activation=self.config.critic_activation)
 
@@ -314,13 +314,15 @@ class A3C(Agent):
         if self.run != '':  # distinguish different run
             name += f' ({self.run}th run)'
         ax.set_title(name)
-        plt.savefig(os.path.join(self.results_path, name))
+        plt.savefig(os.path.join(self.result_path, name))
         plt.close(fig)
 
     def load_policy(self, file):
         """load the parameter saved to value-network or policy-network for testing"""
         if self.global_actor is None:
-            self.global_actor = self._actor(self.state_dim, self.action_dim, self.config.actor_hidden_layer)
+            self.global_actor = self._actor(self.state_dim, self.action_dim, self.config.actor_hidden_layer,
+                                            activation=self.config.actor_activation, max_action=self.max_action,
+                                            fix_std=self.config.fix_std)
         self.global_actor.load_state_dict(torch.load(file))
         self.global_actor.eval()
 

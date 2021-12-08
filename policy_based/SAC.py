@@ -52,7 +52,9 @@ class SAC(Agent):
     def run_reset(self):
         super(SAC, self).run_reset()
 
-        self.actor = self._actor(self.state_dim, self.action_dim, self.config.actor_hidden_layer)
+        self.actor = self._actor(self.state_dim, self.action_dim, self.config.actor_hidden_layer,
+                                 activation=self.config.actor_activation, max_action=self.max_action,
+                                 fix_std=self.config.fix_std)
         self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=self.config.learning_rate)
 
         self.critic1 = self._critic(self.state_dim, self.action_dim, self.config.critic_hidden_layer)
@@ -155,7 +157,9 @@ class SAC(Agent):
 
     def load_policy(self, file):
         if self.actor is None:
-            self.actor = self._actor(self.state_dim, self.action_dim, self.config.actor_hidden_layer)
+            self.actor = self._actor(self.state_dim, self.action_dim, self.config.actor_hidden_layer,
+                                     activation=self.config.actor_activation, max_action=self.max_action,
+                                     fix_std=self.config.fix_std)
         self.actor.load_state_dict(torch.load(file))
         self.actor.eval()
 

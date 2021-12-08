@@ -31,7 +31,9 @@ class PPO(Agent):
 
     def run_reset(self):
         super().run_reset()
-        self.actor = self._actor(self.state_dim, self.action_dim, self.config.actor_hidden_layer)
+        self.actor = self._actor(self.state_dim, self.action_dim, self.config.actor_hidden_layer,
+                                 activation=self.config.actor_activation, max_action=self.max_action,
+                                 fix_std=self.config.fix_std)
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.config.learning_rate)
 
         self.critic = self._critic(self.state_dim, self.config.critic_hidden_layer,

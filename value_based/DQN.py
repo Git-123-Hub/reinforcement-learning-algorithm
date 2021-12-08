@@ -26,7 +26,7 @@ class DQN(Agent):
             print(f'{Color.INFO}using the dueling network{Color.END}')
 
         self.Q, self.target_Q, self.optimizer = None, None, None
-        self.replayMemory = replayMemory(self.config.memory_capacity, self.config.batch_size)
+        self.replay_buffer = replayMemory(self.config.memory_capacity, self.config.batch_size)
 
         self._epsilon = None  # decay according to episode number during training
 
@@ -70,9 +70,9 @@ class DQN(Agent):
             self.logger.info(f'choose randomly, action: {self.action}')
 
     def learn(self):
-        if not self.replayMemory.ready:  # only start to learn when there are enough experiences to sample
+        if not self.replay_buffer.ready:  # only start to learn when there are enough experiences to sample
             return
-        states, actions, rewards, next_states, dones = self.replayMemory.sample()
+        states, actions, rewards, next_states, dones = self.replay_buffer.sample()
 
         current_state_value = self.Q(states).gather(1, actions.long())
         next_state_value = self.get_next_state_value(next_states)
