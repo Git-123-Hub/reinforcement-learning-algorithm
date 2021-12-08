@@ -56,5 +56,5 @@ class Trainer:
 
         name = f'running reward of {self.agent.__class__.__name__} solving {self.agent.env_id}'
         ax.set_title(name)
-        plt.savefig(os.path.join(self.agent.results_path, name))
+        plt.savefig(os.path.join(self.agent.result_path, name))
         plt.close(fig)

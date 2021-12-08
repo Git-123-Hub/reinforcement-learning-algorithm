@@ -29,8 +29,7 @@ if __name__ == '__main__':
     # NOTE that there is no goal for Pendulum-v0, but as you can see in the result, the agent did learn something
     env = gym.make('Pendulum-v0')
     config = Config()
-    config['results'] = './Pendulum_results'
-    config['policy'] = './Pendulum_policy'
+    config.result_path = './Pendulum_results'
     config['seed'] = 103423575
     config['run_num'] = 3
     config['episode_num'] = 300

@@ -109,6 +109,6 @@
 - [reinforcement learning examples of pytorch](
   https://github.com/pytorch/examples/tree/master/reinforcement_learning)
 - [Author's PyTorch implementation of TD3](https://github.com/sfujim/TD3)
-- [RLkit]((https://github.com/rail-berkeley/rlkit))
+- [RLkit](https://github.com/rail-berkeley/rlkit)
 - [Spinning-Up](https://spinningup.openai.com/en/latest/)
 - [pytorch-A3C by MorvanZhou](https://github.com/MorvanZhou/pytorch-A3C)

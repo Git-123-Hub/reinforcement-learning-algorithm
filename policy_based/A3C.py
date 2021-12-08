@@ -228,18 +228,19 @@ class A3C(Agent):
 
         self.logger = setup_logger('a3c.log', name='a3cTraining')
 
-        self.reset()  # setup some variable
+        # self.reset()  # setup some variable
 
         self.run = ''  # this is a flag for distinguish different run, especially when use Trainer to train multiple run
 
-    def reset(self):
+    def run_reset(self):
         """
         before training start, we have to initialize some variable
         """
+        super(A3C, self).run_reset()
         self.current_episode = mp.Value('i', 0)  # shared int to record the current episode number
         self.length = mp.Array('i', self.episode_num)  # record length(steps) of each episode
-        self.rewards = mp.Array('d', self.episode_num)  # record reward of each episode
-        self.running_rewards = mp.Array('d', self.episode_num)  # record running reward of each episode
+        self.episode_rewards = mp.Array('d', self.episode_num)  # record reward of each episode
+        self.episode_running_rewards = mp.Array('d', self.episode_num)  # record running reward of each episode
 
         self.global_actor = self._actor(self.state_dim, self.action_dim, self.config.actor_hidden_layer,
                                         activation=self.config.actor_activation, max_action=self.max_action,
@@ -258,64 +259,58 @@ class A3C(Agent):
         self.critic_optimizer = SharedAdam(self.global_critic.parameters(), lr=1e-4, betas=(0.95, 0.999))
         # self.actor_optimizer = Adam(self.global_actor.parameters(), lr=self.config.learning_rate)
         # self.critic_optimizer = Adam(self.global_critic.parameters(), lr=self.config.learning_rate)
-        self._time = time.time()
 
     def train(self):
-        render = True if self.config.render in ['train', 'both'] else False
+        for run in range(self.run_num):
+            self._run = run
+            self.run_reset()
 
-        # set up all the const that will be used in A3CWorker
-        worker_config = {
-            'total_episode_num': self.episode_num,
-            # tell the worker all the episodes that need to run, so that it knows when to stop
-            'window': self.window,  # used to calculate running rewards
-            'discount_factor': self.config.gamma,  # used when calculate discount cumsum of reward
-            'render': render,  # determine whether render the env or not, if True, only render worker-1
-            'run_num': self.run,  # used to specify the current run_num when train for multiple runs
-            'policy_path': self.policy_path,  # path to store policies that will be saved
-            'learn_interval': self.config.learn_interval,  # the agent learn every `5` steps
-        }
-        workers = [A3CWorker(self.env_id,
-                             self.global_actor, self.global_critic, self.actor_optimizer, self.critic_optimizer,
-                             self.current_episode, self.length,
-                             self.rewards, self.running_rewards,
-                             n + 1, worker_config)
-                   for n in range(self.process_num)]
+            # start training
+            render = True if self.config.render in ['train', 'both'] else False
 
-        [worker.start() for worker in workers]
+            # set up all the const that will be used in A3CWorker
+            worker_config = {
+                'total_episode_num': self.episode_num,
+                # tell the worker all the episodes that need to run, so that it knows when to stop
+                'window': self.window,  # used to calculate running rewards
+                'discount_factor': self.config.gamma,  # used when calculate discount cumsum of reward
+                'render': render,  # determine whether render the env or not, if True, only render worker-1
+                'run_num': self.run,  # used to specify the current run_num when train for multiple runs
+                'policy_path': self.policy_path,  # path to store policies that will be saved
+                'learn_interval': self.config.learn_interval,  # the agent learn every `5` steps
+            }
+            workers = [A3CWorker(self.env_id,
+                                 self.global_actor, self.global_critic, self.actor_optimizer, self.critic_optimizer,
+                                 self.current_episode, self.length,
+                                 self.episode_rewards, self.episode_running_rewards,
+                                 n + 1, worker_config)
+                       for n in range(self.process_num)]
 
-        [worker.join() for worker in workers]
+            [worker.start() for worker in workers]
 
-        # determine whether the agent has solved the problem
-        episode = np.argmax(np.array(self.running_rewards) >= self.goal)
-        # use np.argmax because it stops at the first True(more efficient)
-        # but it might return 0 if no there is no True, so another condition is needed
-        if episode > 0 or (episode == 0 and self.running_rewards[0] >= self.goal):
-            print(f'\n{Color.SUCCESS}Problem solved on episode {episode + 1}, ', end='')
-        else:
-            print(f'\n{Color.FAIL}Problem NOT solved, ', end='')
+            [worker.join() for worker in workers]
 
-        # calculate running time and total steps of this run
-        delta_time = time.time() - self._time
-        print(f'time taken: {str(datetime.timedelta(seconds=int(delta_time)))}, '
-              f'total steps: {sum(self.length[:])}{Color.END}')
+            # copy training result to `self.rewards` for statistical analyze
+            self.rewards[run][:] = self.episode_rewards[:]
+            self.running_rewards[run][:] = self.episode_running_rewards[:]
 
-        # plot training result of this run
-        fig, ax = plt.subplots()
-        ax.set_xlabel('episode')
-        ax.set_ylabel('reward')
+            # determine whether the agent has solved the problem
+            episode = np.argmax(self.running_rewards[self._run] >= self.goal)
+            # use np.argmax because it stops at the first True(more efficient)
+            # but it might return 0 if no there is no True, so another condition is needed
+            if episode > 0 or (episode == 0 and self.running_rewards[self._run][0] >= self.goal):
+                print(f'\n{Color.SUCCESS}Problem solved on episode {episode + 1}, ', end='')
+            else:
+                print(f'\n{Color.FAIL}Problem NOT solved, ', end='')
 
-        x = np.arange(1, self.episode_num + 1)
-        ax.plot(x, self.rewards[:], label='reward', color=Color.REWARD, zorder=1)
-        ax.hlines(y=self.goal, xmin=1, xmax=self.episode_num, label='goal', colors=Color.GOAL, zorder=2)
-        ax.plot(x, self.running_rewards, label='running reward', color=Color.RUNNING_REWARD, zorder=3)
+            # calculate running time and total steps of this run
+            delta_time = time.time() - self._time
+            print(f'time taken: {str(datetime.timedelta(seconds=int(delta_time)))}, '
+                  f'total steps: {sum(self.length[:])}{Color.END}')
 
-        ax.legend(loc='lower right')
-        name = f'result of {self.__class__.__name__} solving {self.env_id}'
-        if self.run != '':  # distinguish different run
-            name += f' ({self.run}th run)'
-        ax.set_title(name)
-        plt.savefig(os.path.join(self.result_path, name))
-        plt.close(fig)
+            self.plot_run_result()
+
+        self.plot_running_rewards()
 
     def load_policy(self, file):
         """load the parameter saved to value-network or policy-network for testing"""
