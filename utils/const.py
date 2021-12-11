@@ -44,9 +44,8 @@ def visualize_color():
     x = range(1, 11)
     fig, ax = plt.subplots()
     colors = ['DQN', 'DDQN', 'DDQN_PER', 'REINFORCE', 'REINFORCE_BASELINE',
-              'DDPG', 'TD3', 'GOAL', 'REWARD', 'TEST', 'RUNNING_REWARD']
+              'DDPG', 'TD3', 'SAC', 'PPO', 'A3C', 'GOAL', 'REWARD', 'TEST', 'RUNNING_REWARD']
     for index, color in enumerate(colors):
-        print(getattr(Color, color))
         ax.plot(x, [index] * 10, color=getattr(Color, color), label=color)
     ax.legend()
     plt.show()
@@ -62,11 +61,7 @@ class Config:
         self.seed = None  # global random seed
 
         # data, graph and policy from each training should be saved
-        # so it's necessary to determine the path to store them and whether clear all the old results before start
         self.result_path = './results'  # path to store the graph and data from the training
-        # todo: the following two attribute should be removed
-        self.results = './results'
-        self.policy = './policy'
 
         # render mode: determine whether render or not,
         # 'train' for rendering during training, 'test' for rendering during testing policy,
@@ -74,13 +69,12 @@ class Config:
         self.render = None
 
         # ##### basic parameter ##### #
-        # determine how many episodes should the agent run during each training time
-        self.episode_num = 1000
-        # if train for multiple run, i.e. use Trainer, run time should also be configured
+        # determine runs and episodes per run of each training
         self.run_num = 5
+        self.episode_num = 1000
 
         self.gamma = 0.99  # reward discount factor
-        self.learning_rate = 1e-3
+        self.learning_rate = 1e-3  # todo: specify different lr for different network
         self.tau = 0.01  # parameter for network soft-update
         self.update_interval = 5  # interval of updating target_network, if not specified, update every step, i.e. 1
 
@@ -144,6 +138,10 @@ class Config:
     def __setitem__(self, key, value):
         setattr(self, key, value)
 
+    def info(self):
+        """get all the attribute of Config"""
+        return vars(self)
+
 
 # default goal for some env whose goal is None
 DefaultGoal = {
@@ -155,3 +153,4 @@ DefaultGoal = {
 
 if __name__ == '__main__':
     visualize_color()
+    print(Config().info())

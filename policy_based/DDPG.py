@@ -5,6 +5,7 @@
 ############################################
 import os
 from copy import deepcopy
+from typing import Type
 
 import numpy as np
 import torch
@@ -12,11 +13,12 @@ import torch.nn.functional as F
 from torch import optim
 
 from utils import Agent, replayMemory
+from utils.model import DeterministicActor, StateActionCritic
 from utils.util import soft_update
 
 
 class DDPG(Agent):
-    def __init__(self, env, actor, critic, config):
+    def __init__(self, env, actor: Type[DeterministicActor], critic: Type[StateActionCritic], config):
         super(DDPG, self).__init__(env, config)
         self._actor = actor
         self._critic = critic
@@ -25,45 +27,44 @@ class DDPG(Agent):
         self.actor, self.target_actor, self.actor_optimizer = None, None, None
         self.critic, self.target_critic, self.critic_optimizer = None, None, None
 
-        self.replayMemory = replayMemory(self.config.memory_capacity, self.config.batch_size)
+        self.replay_buffer = replayMemory(self.config.memory_capacity, self.config.batch_size)
 
     def run_reset(self):
         super(DDPG, self).run_reset()
 
         self.actor = self._actor(self.state_dim, self.action_dim, self.config.actor_hidden_layer,
-                                 max_action=self.max_action)
-        self.target_actor = deepcopy(self.actor)
+                                 max_action=self.max_action, activation=self.config.actor_activation).to(self.device)
+        self.target_actor = deepcopy(self.actor).to(self.device)
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.config.learning_rate)
 
-        self.critic = self._critic(self.state_dim, self.action_dim, self.config.critic_hidden_layer)
-        self.target_critic = deepcopy(self.critic)
+        self.critic = self._critic(self.state_dim, self.action_dim, self.config.critic_hidden_layer,
+                                   activation=self.config.critic_activation).to(self.device)
+        self.target_critic = deepcopy(self.critic).to(self.device)
         self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=self.config.learning_rate)
 
     def select_action(self):
-        self.actor.eval()
-        state = torch.tensor(self.state).float().unsqueeze(0)
-        self.action = self.actor(state).detach().squeeze(0).numpy()
-        self.actor.train()
+        state = torch.tensor(self.state).float().unsqueeze(0).to(self.device)
+        self.action = self.actor(state).detach().squeeze(0).cpu().numpy()
 
         noise = np.random.normal(0, 1)
 
         self.action += noise  # gym environment will do the clip on action
 
     def learn(self):
-        if not self.replayMemory.ready:  # only start to learn when there are enough experience to learn
+        if len(self.replay_buffer) < self.config.random_steps:
+            # only start to learn when there are enough experience to learn
             return
-        states, actions, rewards, next_states, dones = self.replayMemory.sample()
+        states, actions, rewards, next_states, dones = self.replay_buffer.sample()
 
         # update critic using the loss between current_state_value and bootstrap target_value
-        self.critic.eval()
-        current_state_action_value = self.critic(states, actions)
-        self.critic.train()
+        current_state_action_value = self.critic(states, actions).squeeze(1)  # shape: batch_size
 
         # calculate next_state_action_value using the next_action get from target_actor
         next_action = self.target_actor(next_states).detach()
-        next_state_action_value = self.target_critic(next_states, next_action).detach()
-        target_value = rewards + self.config.gamma * next_state_action_value * (1 - dones)
+        next_state_action_value = self.target_critic(next_states, next_action).detach().squeeze(1)  # shape: batch_size
+        target_value = rewards + self.config.gamma * next_state_action_value * (1 - dones)  # shape: batch_size
 
+        assert current_state_action_value.shape == target_value.shape
         loss = F.mse_loss(current_state_action_value, target_value, reduction='mean')
         self.critic_optimizer.zero_grad()
         loss.backward()
@@ -90,9 +91,9 @@ class DDPG(Agent):
     def load_policy(self, file):
         if self.actor is None:
             self.actor = self._actor(self.state_dim, self.action_dim, self.config.actor_hidden_layer,
-                                     max_action=self.max_action)
+                                     max_action=self.max_action, activation=self.config.actor_activation).to(
+                self.device)
         self.actor.load_state_dict(torch.load(file))
-        self.actor.eval()
 
     def test_action(self, state):
-        return self.actor(state).detach().squeeze(0).numpy()
+        return self.actor(state).detach().squeeze(0).cpu().numpy()
