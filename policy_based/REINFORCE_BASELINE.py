@@ -65,7 +65,7 @@ class REINFORCE_BASELINE(Agent):
         if not self.done:  # only learn when an episode finishes
             return
 
-        returns = discount_sum(self.episode_reward, self.config.discount_factor, normalize=True)
+        returns = discount_sum(self.episode_reward, self.config.gamma, normalize=True)
         returns = torch.from_numpy(returns).float()
 
         # update actor

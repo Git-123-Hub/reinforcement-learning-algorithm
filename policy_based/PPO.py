@@ -27,7 +27,7 @@ class PPO(Agent):
         self._critic = critic
         self.critic, self.critic_optimizer = None, None
 
-        self.replayMemory = EpisodicReplayMemory(self.config.discount_factor)
+        self.replayMemory = EpisodicReplayMemory(self.config.gamma)
 
     def run_reset(self):
         super().run_reset()

@@ -79,18 +79,18 @@ class Config:
         # if train for multiple run, i.e. use Trainer, run time should also be configured
         self.run_num = 5
 
-        self.discount_factor = 0.99  # todo delete this
         self.gamma = 0.99  # reward discount factor
         self.learning_rate = 1e-3
         self.tau = 0.01  # parameter for network soft-update
         self.update_interval = 5  # interval of updating target_network, if not specified, update every step, i.e. 1
-        self.Q_update_interval = 5  # todo: delete this
 
         # ##### replay memory setting ##### #
         self.memory_capacity = 20000
         self.batch_size = 256  # parameters for replay memory
         self.alpha = 0.3
         self.beta = 0.3  # parameters for prioritized replay memory
+
+        self.random_steps = 1000  # interact with the env randomly to generate experience before start to learn
 
         # ##### epsilon setting ##### #
         self.epsilon = 1  # start epsilon

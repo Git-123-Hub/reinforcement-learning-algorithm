@@ -218,6 +218,7 @@ class A3CWorker(mp.Process):
 class A3C(Agent):
     def __init__(self, env, actor, critic, config):
         super(A3C, self).__init__(env, config)
+        self.device = 'cpu'  # todo: not sure how to use multi-process on gpu
         self.result_path = initial_folder(self.config.result_path)  # path to store graph and data
         self.policy_path = initial_folder(self.config.result_path + '/policy saved')  # path to store network parameters
         self._actor = actor
@@ -244,9 +245,9 @@ class A3C(Agent):
 
         self.global_actor = self._actor(self.state_dim, self.action_dim, self.config.actor_hidden_layer,
                                         activation=self.config.actor_activation, max_action=self.max_action,
-                                        fix_std=self.config.fix_std)
+                                        fix_std=self.config.fix_std).to(self.device)
         self.global_critic = self._critic(self.state_dim, self.config.critic_hidden_layer,
-                                          activation=self.config.critic_activation)
+                                          activation=self.config.critic_activation).to(self.device)
 
         self.global_actor.init()
         self.global_critic.init()

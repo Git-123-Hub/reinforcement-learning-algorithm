@@ -47,6 +47,7 @@ class Agent(abc.ABC):
             self.min_action = self.env.action_space.low[0]
 
         self.config = config
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # some algorithms might need a replay buffer to store experience, if needed, just initialize it
         # related methods have already been implemented: reset() in `run_reset()`,  save_experience()
@@ -233,8 +234,7 @@ class Agent(abc.ABC):
         so experience is saved only if `self.replayMemory` has already been defined
         """
         if self.replay_buffer is not None:
-            experience = (self.state, self.action, self.reward, self.next_state, self.done)
-            self.replay_buffer.add(experience)
+            self.replay_buffer.add(self.state, self.action, self.reward, self.next_state, self.done)
 
     @abc.abstractmethod
     def learn(self):
@@ -300,7 +300,8 @@ class Agent(abc.ABC):
 
     @property
     def _running_reward(self):
-        """calculate the average reward of the last `self.window` episodes"""
+        """calculate running reward of the current episode,
+        i.e. the average reward of the last `self.window` episodes"""
         return np.mean(self.rewards[self._run][max(self._episode + 1 - self.window, 0):self._episode + 1])
 
     def test(self, n: int = None, *, episodes=None):
