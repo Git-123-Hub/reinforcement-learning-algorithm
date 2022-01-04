@@ -89,7 +89,7 @@ class DQN(Agent):
 
     def get_next_state_value(self, next_states):
         # tensor.max(dim) returns tuple (values, indices), so we add [0] to get the max values
-        return self.target_Q(next_states).detach().max(1)[0]
+        return self.target_Q(next_states).detach().max(1)[0]  # shape: batch_size
 
     def gradient_descent(self, loss):
         self.optimizer.zero_grad()

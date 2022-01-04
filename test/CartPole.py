@@ -19,8 +19,8 @@ if __name__ == '__main__':
     # base config
     config.result_path = './CartPole_results'
     config['seed'] = 5326583
-    config['run_num'] = 5
-    config['episode_num'] = 1000
+    config['run_num'] = 3
+    config['episode_num'] = 500
 
     config['min_epsilon'] = 0.001
     config['Q_update_interval'] = 5
@@ -42,6 +42,7 @@ if __name__ == '__main__':
     agent.train()
     # agent.test(20)
 
+    config.episode_num = 1000
     config['learning_rate'] = 0.001
     config['policy_hidden_layer'] = [128]
     agent = REINFORCE(env, DiscreteStochasticActor, config)
