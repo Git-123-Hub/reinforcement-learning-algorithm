@@ -28,16 +28,21 @@ class DDQN_PER(DDQN):
         # when `self.episode` equals `self.episode_num`-1(i.e. each episode stops), alpha and beta are set to 1
 
     def learn(self):
-        experiences, IS_weights = self.replay_buffer.sample()
-        states, actions, rewards, next_states, dones = experiences
+        if len(self.replay_buffer) < self.config.random_steps:
+            # interact with the env randomly to generate experience before start to learn
+            # only start to learn when there are enough experiences to sample
+            return
 
-        current_state_value = self.Q(states).gather(1, actions.long())
-        next_state_value = self.get_next_state_value(next_states)
-        target_value = rewards + self.config.gamma * next_state_value * (1 - dones)
+        (states, actions, rewards, next_states, dones), IS_weights = self.replay_buffer.sample()
+
+        current_state_value = self.Q(states).gather(1, actions.long()).squeeze(1).to(self.device)  # shape: batch_size
+        next_state_value = self.get_next_state_value(next_states)  # shape: batch_size
+        assert rewards.shape == next_state_value.shape == dones.shape == current_state_value.shape
+        target_value = rewards + self.config.gamma * next_state_value * (1 - dones)  # shape: batch_size
 
         # update priority with td-error
-        td_errors = target_value - current_state_value
-        self.replay_buffer.update(td_errors.squeeze().tolist())
+        td_errors = target_value - current_state_value  # shape: batch_size
+        self.replay_buffer.update(td_errors.tolist())
 
         # calculate loss using IS_weights
         loss = F.mse_loss(current_state_value, target_value, reduction='none').squeeze()

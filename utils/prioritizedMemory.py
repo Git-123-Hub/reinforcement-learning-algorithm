@@ -37,30 +37,28 @@ class prioritizedMemory(replayMemory):
         self.beta = self.beta0
         self.max_priority = 1
 
-    def add(self, experience):
+    def add(self, state, action, reward, next_state, done):
         """add experience and use `self.max_priority` to initialize it's priority"""
-        super(prioritizedMemory, self).add(experience)
+        super(prioritizedMemory, self).add(state, action, reward, next_state, done)
         self.priority.add(self.max_priority)
 
-    def sample(self):
-        experiences = np.zeros(self.batch_size, dtype=object)  # sampled experiences
-        priorities = np.zeros(self.batch_size, dtype=np.float64)  # correspond priority
+    def sample(self, size=None):
+        if size is None: size = self.batch_size
+        sample_priorities = np.zeros(size, dtype=np.float64)  # correspond priority
         # a) divide [0, `self.priority.sum`] into `batch_size` ranges
-        segment = self.priority.sum / self.batch_size
-        for i in range(self.batch_size):
-            # print([segment * i, segment * (i + 1)])
+        segment = self.priority.sum / size
+        for i in range(size):
             # b) uniformly sample a value from each range
             priority = np.random.uniform(segment * i, segment * (i + 1))
             # c) retrieve transition that corresponds to each value
             index, priority = self.priority.find(priority)
-            # d) save sampled data
+            # d) save sampled index
             self.sample_index[i] = index
-            experiences[i] = self.memory[index]
-            priorities[i] = priority
-        sample_probabilities = priorities / self.priority.sum
+            sample_priorities[i] = priority
+        sample_probabilities = sample_priorities / self.priority.sum
         IS_weights = np.power(self.capacity * sample_probabilities, -self.beta)
         IS_weights /= IS_weights.max()
-        return transfer_experience(experiences), IS_weights
+        return self.transfer_experience(self.sample_index), IS_weights
 
     def update(self, td_errors):
         for i, index in enumerate(self.sample_index):
@@ -71,8 +69,3 @@ class prioritizedMemory(replayMemory):
             self.priority[index] = priority
             self.max_priority = max(self.max_priority, priority)
 
-    def __getitem__(self, index):
-        assert type(index) == int
-        experience = self.memory[index]
-        priority = self.priority[index]
-        return experience, priority

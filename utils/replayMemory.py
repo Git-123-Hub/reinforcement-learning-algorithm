@@ -6,8 +6,6 @@
 import numpy as np
 import torch
 
-from utils.util import transfer_experience
-
 
 class replayMemory:
     """data structure where we store the agent's experience, and sample from them for the agent to learn"""
@@ -54,9 +52,12 @@ class replayMemory:
         if size is None: size = self.batch_size
         # sample all the current useful index without duplicate(replace=False)
         indices = np.random.choice(self._size, size=size, replace=False)
+        return self.transfer_experience(indices)
 
-        states, actions, rewards, next_states, dones = self[indices]  # __getitem__
-        # we will have to transfer ndarray to tensor and change the shape of the data if necessary
+    def transfer_experience(self, indices):
+        """transfer the data of `indices` from ndarray to tensor and change the shape of the data if necessary"""
+        # retrieve data using `__getitem__`, Note that the data stored is ndarray
+        states, actions, rewards, next_states, dones = self[indices]
         # NOTE that `states`, `actions`, `next_states` will be passed to network(nn.Module),
         # so the first dimension should be `batch_size`
         states = torch.from_numpy(np.vstack(states)).float().to(self.device)  # torch.Size([batch_size, state_dim])
@@ -64,7 +65,6 @@ class replayMemory:
         rewards = torch.from_numpy(rewards).float().to(self.device)  # just a tensor with length: batch_size
         next_states = torch.from_numpy(np.vstack(next_states)).float().to(self.device)  # Size([batch_size, state_dim])
         dones = torch.from_numpy(dones).float().to(self.device)  # just a tensor with length: batch_size
-
         return states, actions, rewards, next_states, dones
 
     def __len__(self):
