@@ -8,7 +8,6 @@ import numpy as np
 
 from utils.replayMemory import replayMemory
 from utils.sumTree import sumTree
-from utils.util import transfer_experience
 
 
 class prioritizedMemory(replayMemory):
@@ -68,4 +67,3 @@ class prioritizedMemory(replayMemory):
             priority = abs(td_errors[i]) ** self.alpha
             self.priority[index] = priority
             self.max_priority = max(self.max_priority, priority)
-

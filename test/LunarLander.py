@@ -8,7 +8,7 @@ import gym
 from policy_based import REINFORCE, REINFORCE_BASELINE
 from utils.const import Config
 from utils.model import QNet, DiscreteStochasticActor, StateCritic
-from utils.util import compare
+from utils.util import compare_results
 from value_based import DDQN, DDQN_PER, DQN, DuelingQNet
 
 if __name__ == '__main__':
@@ -48,4 +48,4 @@ if __name__ == '__main__':
     agent = REINFORCE_BASELINE(env, DiscreteStochasticActor, StateCritic, config)
     agent.train()
 
-    compare(['DQN', 'DDQN', 'DDQN_PER', 'REINFORCE', 'REINFORCE_BASELINE'], config.result_path)
+    compare_results(config.result_path)

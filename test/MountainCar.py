@@ -3,19 +3,12 @@
 # @Date: 2021/9/13
 # @Description: test performance of rl algorithm on problem MountainCart-v0
 ############################################
-
-
 import gym
-import numpy as np
-import torch
-import torch.nn as nn
-from torch.distributions import Categorical
 
-from policy_based import REINFORCE, REINFORCE_BASELINE
 from utils.const import Config
-from utils.model import StateActionCritic, DiscreteStochasticActor, StateCritic, QNet
-from utils.util import compare
-from value_based import DDQN, DDQN_PER, DQN, DuelingQNet
+from utils.model import QNet
+from utils.util import compare_results
+from value_based import DDQN, DDQN_PER, DQN
 
 
 class ModifyReward(gym.Wrapper):
@@ -80,8 +73,6 @@ if __name__ == '__main__':
     agent = DDQN_PER(env, QNet, config)
     agent.train()
 
-    compare(['DQN', 'DDQN', 'DDQN_PER'], config.result_path)
-
     # todo: policy based can't solve this problem
     # # policy based
     # config['render'] = 'train'
@@ -95,4 +86,4 @@ if __name__ == '__main__':
     # agent = REINFORCE_BASELINE(env, DiscreteStochasticActor, StateCritic, config)
     # agent.train()
 
-    # compare(['DQN', 'DDQN', 'DDQN_PER', 'REINFORCE', 'REINFORCE_BASELINE'], config.result_path)
+    compare_results(config.result_path)

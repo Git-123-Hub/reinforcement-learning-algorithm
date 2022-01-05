@@ -10,7 +10,7 @@ import gym
 from policy_based import REINFORCE, REINFORCE_BASELINE
 from utils.const import Config
 from utils.model import QNet, DiscreteStochasticActor, StateCritic
-from utils.util import compare
+from utils.util import compare_results
 from value_based import DDQN, DDQN_PER, DQN
 
 if __name__ == '__main__':

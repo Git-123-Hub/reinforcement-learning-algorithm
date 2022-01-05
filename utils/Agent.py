@@ -87,26 +87,15 @@ class Agent(abc.ABC):
         # record the time of every run.
         # record start time in `self.run_reset()`, print program running time after every run.
 
-        self._global_seed = self.config.seed
-        # the 'seed' specified in config is the global seed of the training
-        # if provided, we use it to generate a list of random seeds, they will be used in each run
-        if self._global_seed is not None:
-            np.random.seed(self._global_seed)
-            self._seeds = np.random.randint(0, 2 ** 32 - 1, size=self.run_num, dtype=np.int64)
-        # if not provided, then each run of the training use random seed 'None'
+        self.set_random_seed()  # set up seed before training starts
 
     def set_random_seed(self, *, more_random: bool = False):
         """
         set random seed of the current run, so that the results can be reproduced
         :param more_random: specify this keyword argument as `True` to set seed `None` and make the random more `random`
         """
-        # We take the seed provided in `self.config` as the global seed,
-        # and use it to the generate random seeds for different run (self._seeds).
-        # Or you can specify `more_random` as True to ignore the seed,
-        # and make the procedure more random, e.g. when testing the policy.
-
         if not more_random:  # get the seed and make the training deterministic
-            seed = self._seeds[self._run].item()  # convert numpy.int64 to int
+            seed = self.config.seed  # global seed specified in `config`
 
             # seed for functions below can't be None, so we call it here
             torch.manual_seed(seed)
@@ -131,25 +120,15 @@ class Agent(abc.ABC):
         # set the seed of env.action_space so that action_space.sample() can be deterministic
         # or you can choose to use another random function(e.g. randint) to implement how to choose action randomly
         self.env.action_space.seed(seed)
-
-        return seed
+        print(f'seed has been set to {seed}')
 
     def run_reset(self):
         """reset the agent before each run"""
-        # set up random seed for different run
-        # if `self._global_seed` is provided,
-        # set random seed before anything to make sure the algorithm can be reproduced
-        if self._global_seed is not None:
-            seed = self.set_random_seed()
-        # if not provided, there is no need to set random seed
-        else:
-            seed = None
-
         if self.replay_buffer is not None: self.replay_buffer.reset()
 
         # record the start time of this run
         self._time = time.time()
-        print(self.__class__.__name__ + f' solves {self.env_id} {self._run + 1}th run, random seed: {seed}')
+        print(self.__class__.__name__ + f' solves {self.env_id} {self._run + 1}th run')
 
     def episode_reset(self):
         """reset the agent to start another episode"""
