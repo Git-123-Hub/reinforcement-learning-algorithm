@@ -40,18 +40,14 @@ if __name__ == '__main__':
 
     agent = DDQN_PER(env, QNet, config)
     agent.train()
-    # agent.test(20)
 
-    config.episode_num = 1000
-    config['learning_rate'] = 0.001
+    config['learning_rate'] = 0.002
     config['policy_hidden_layer'] = [128]
     agent = REINFORCE(env, DiscreteStochasticActor, config)
     agent.train()
-    # agent.test()
 
-    config['critic_hidden_layer'] = [32, 32]
+    config['critic_hidden_layer'] = [64]
     agent = REINFORCE_BASELINE(env, DiscreteStochasticActor, StateCritic, config)
     agent.train()
-    # agent.test()
 
     compare_results(config.result_path)

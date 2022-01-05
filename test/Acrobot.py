@@ -42,8 +42,7 @@ if __name__ == '__main__':
 
     # NOTE that the performance of these policy based method is not stable
     # sometimes it can solve the problem, while it may also learn nothing
-    config['learning_rate'] = 0.005
-    config['episode_num'] = 1000
+    config['learning_rate'] = 0.001
     config['policy_hidden_layer'] = [32, 32]
     agent = REINFORCE(env, DiscreteStochasticActor, config)
     agent.train()
@@ -52,4 +51,4 @@ if __name__ == '__main__':
     agent = REINFORCE_BASELINE(env, DiscreteStochasticActor, StateCritic, config)
     agent.train()
 
-    compare(['DQN', 'DDQN', 'DDQN_PER', 'REINFORCE', 'REINFORCE_BASELINE'], config.result_path)
+    compare_results(config.result_path)
