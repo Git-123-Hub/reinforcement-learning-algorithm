@@ -40,7 +40,7 @@ class ModifyReward(gym.Wrapper):
 
 
 if __name__ == '__main__':
-    # NOTE that you can still solve the original env, however, with reward modified, it will become easier
+    # NOTE that you can still solve the original env, however, the modified reward does help stabilize
     env = ModifyReward(gym.make('MountainCar-v0'))
     # env = gym.make('MountainCar-v0')
 
@@ -48,7 +48,7 @@ if __name__ == '__main__':
     config.result_path = './Mountain_results'
 
     config['seed'] = 4357436
-    config['run_num'] = 5
+    config['run_num'] = 3
     config['episode_num'] = 1000
 
     config['memory_capacity'] = 1e5
