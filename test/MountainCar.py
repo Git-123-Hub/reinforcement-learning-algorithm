@@ -6,9 +6,10 @@
 import gym
 
 from utils.const import Config
-from utils.model import QNet
+from utils.model import QNet, DiscreteStochasticActor, StateCritic
 from utils.util import compare_results
 from value_based import DDQN, DDQN_PER, DQN
+from policy_based import REINFORCE, REINFORCE_BASELINE
 
 
 class ModifyReward(gym.Wrapper):
@@ -73,15 +74,12 @@ if __name__ == '__main__':
     agent = DDQN_PER(env, QNet, config)
     agent.train()
 
-    # todo: policy based can't solve this problem
-    # # policy based
-    # config['render'] = 'train'
-    # config['episode_num'] = 1000 * 50
+    # policy based can't solve this problem
     # config['learning_rate'] = 1e-3
     # config['actor_hidden_layer'] = [128, 64]
-    # a = REINFORCE(env, DiscreteStochasticActor, config)
-    # a.train()
-
+    # agent = REINFORCE(env, DiscreteStochasticActor, config)
+    # agent.train()
+    #
     # config['critic_hidden_layer'] = [128, 64]
     # agent = REINFORCE_BASELINE(env, DiscreteStochasticActor, StateCritic, config)
     # agent.train()

@@ -18,14 +18,7 @@ class DDQN_PER(DDQN):
     def episode_reset(self):
         """implement parameter(alpha, beta) decay before episode starts"""
         super(DDQN_PER, self).episode_reset()
-        # linear change of parameter alpha, beta of the prioritized replay memory
-        self.replay_buffer.alpha = self.replay_buffer.alpha0 + (1 - self.replay_buffer.alpha0) * self._episode / (
-                self.episode_num - 1)
-        self.replay_buffer.beta = self.replay_buffer.beta0 + (1 - self.replay_buffer.beta0) * self._episode / (
-                self.episode_num - 1)
-        # when `self.episode` equals 0(i.e. each episode starts),
-        # alpha and beta are set to its initial value, which is provided in the config
-        # when `self.episode` equals `self.episode_num`-1(i.e. each episode stops), alpha and beta are set to 1
+        # todo: linear change of parameter alpha, beta of the prioritized replay memory
 
     def learn(self):
         if len(self.replay_buffer) < self.config.random_steps:

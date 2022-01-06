@@ -36,13 +36,12 @@ if __name__ == '__main__':
     agent.train()
 
     # policy based
-    # todo: tuning hyperparameter
     # NOTE that these method can't solve the problem, it can learn something, but can't reach the goal
     config['learning_rate'] = 5e-3
     config['episode_num'] = 1000
     config['actor_hidden_layer'] = [64, 64]
-    a = REINFORCE(env, DiscreteStochasticActor, config)
-    a.train()
+    agent = REINFORCE(env, DiscreteStochasticActor, config)
+    agent.train()
 
     config['critic_hidden_layer'] = [64, 64]
     agent = REINFORCE_BASELINE(env, DiscreteStochasticActor, StateCritic, config)
