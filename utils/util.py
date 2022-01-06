@@ -111,7 +111,6 @@ def discount_sum(x, gamma, *, normalize=False, value=0):
     :return: output vector: [x0 + gamma * x1 + gamma^2 * x2, x1 + gamma * x2, x2]
     """
     result = np.zeros_like(x, dtype=float)
-    # v0 = 0
     for index in reversed(range(len(x))):
         value = x[index] + gamma * value
         result[index] = value

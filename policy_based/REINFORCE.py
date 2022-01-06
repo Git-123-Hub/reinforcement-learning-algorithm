@@ -33,7 +33,7 @@ class REINFORCE(Agent):
     def select_action(self):
         state = torch.tensor(self.state).float().unsqueeze(0)
         self.action, log_prob = self.policy(state)
-        self.episode_log_prob.append(log_prob)
+        self.episode_log_prob.append(log_prob.squeeze())  # just a tensor
 
     def learn(self):
         # NOTE that REINFORCE only learn when an episode finishes
@@ -46,7 +46,7 @@ class REINFORCE(Agent):
         returns = discount_sum(self.episode_reward, self.config.gamma, normalize=True)
 
         # update policy
-        loss = torch.cat(self.episode_log_prob) * torch.from_numpy(-returns)
+        loss = torch.stack(self.episode_log_prob) * torch.from_numpy(-returns)
         # Note the negative sign for `returns` to change gradient ascent to gradient descent
         loss = loss.sum()
         self.optimizer.zero_grad()

@@ -53,24 +53,26 @@ class REINFORCE_BASELINE(Agent):
     def select_action(self):
         state = torch.tensor(self.state).float().unsqueeze(0)
         self.action, log_prob = self.actor(state)
-        self.episode_log_prob.append(log_prob)
+        self.episode_log_prob.append(log_prob.squeeze())  # just a tensor
 
     def learn(self):
         # NOTE that this algorithm only learn when an episode finishes
         # before that, we need to collect sequence of reward and state-value of this episode
         self.episode_reward.append(self.reward)
         state = torch.tensor(self.state).float().unsqueeze(0)
-        self.episode_state_value.append(self.critic(state))
+        self.episode_state_value.append(self.critic(state).squeeze())  # just a tensor
 
         if not self.done:  # only learn when an episode finishes
             return
 
         returns = discount_sum(self.episode_reward, self.config.gamma, normalize=True)
         returns = torch.from_numpy(returns).float()
+        episode_state_value = torch.stack(self.episode_state_value)  # shape: episode_length
+        assert returns.shape == episode_state_value.shape
 
         # update actor
-        advantage_list = returns - torch.cat(self.episode_state_value).squeeze(1)
-        policy_loss_list = torch.cat(self.episode_log_prob) * -advantage_list.detach()  # note the negative sign
+        advantage_list = returns - episode_state_value
+        policy_loss_list = torch.stack(self.episode_log_prob) * -advantage_list.detach()  # note the negative sign
         loss = policy_loss_list.sum()
         self.logger.info(f'actor loss: {loss.item()}')
         self.actor_optimizer.zero_grad()
@@ -78,7 +80,7 @@ class REINFORCE_BASELINE(Agent):
         self.actor_optimizer.step()
 
         # update critic
-        loss = F.mse_loss(torch.cat(self.episode_state_value).squeeze(), returns, reduction='sum').float()
+        loss = F.mse_loss(episode_state_value, returns, reduction='sum').float()
         self.logger.info(f'critic loss: {loss.item()}')
         self.critic_optimizer.zero_grad()
         loss.backward()
