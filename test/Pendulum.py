@@ -5,7 +5,7 @@
 ############################################
 import gym
 
-from policy_based import DDPG, TD3, PPO
+from policy_based import DDPG, TD3, PPO, A3C
 from utils.const import Config
 from utils.model import DeterministicActor, StateActionCritic, ContinuousStochasticActor, StateCritic
 from utils.util import compare_results
@@ -56,22 +56,19 @@ if __name__ == '__main__':
     agent.train()
     # agent.test()
 
-    config['actor_hidden_layer'] = [128, 64]
-    config['critic_hidden_layer'] = [128, 64]
     config['learning_rate'] = 3e-4
 
     config['training_epoch'] = 5
     config['episode_num'] = 300 * 30
-    # agent = PPO(env, ContinuousStochasticActor, StateCritic, config)
-    agent = PPO(env, ContinuousStochasticActorFixStd, StateCritic, config)
-    # agent.train()
+    config.fix_std = None
+    agent = PPO(env, ContinuousStochasticActor, StateCritic, config)
+    agent.train()
 
     config['episode_num'] = 3000
-    config['actor_hidden_layer'] = [128, 64]
-    config['critic_hidden_layer'] = [128, 64]
-    # config['process_num'] = 8
-    agent = A3C(env, ContinuousStochasticActor, StateCritic, config)
-    # agent.train()
-    trainer = Trainer(agent, 3)
-    trainer.train()
-    # agent.test()
+    config.learning_rate = 1e-4
+    config['learn_interval'] = 5
+    # config['process_num'] = 5
+    agent = A3C(ModifyReward(env), ContinuousStochasticActor, StateCritic, config)
+    agent.train()
+
+    compare_results(config.result_path)

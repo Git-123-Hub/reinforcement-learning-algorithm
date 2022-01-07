@@ -31,7 +31,6 @@ if __name__ == '__main__':
     # it seems that DDPG can't solve this problem, but it can learn something
     agent = DDPG(env, DeterministicActor, StateActionCritic, config)
     agent.train()
-    # agent.test()
 
     config['update_interval'] = 2
     config['noise_std'] = 1
@@ -52,8 +51,14 @@ if __name__ == '__main__':
     config['learning_rate'] = 5e-4
     config['training_epoch'] = 10  # todo: try 10
     config['episode_num'] = 500 * 60
-    # config['render'] = 'train'
-    print(config['training_epoch'], config['episode_num'])
-    agent = PPO(env, ContinuousStochasticActorFixStd, StateCritic, config)
-    # agent = PPO(env, ContinuousStochasticActor, StateCritic, config)
+    config.fix_std = None
+    agent = PPO(env, ContinuousStochasticActor, StateCritic, config)
+    agent.train()
+
+    config['episode_num'] = 3000
+    config['actor_hidden_layer'] = [128, 128]
+    config['critic_hidden_layer'] = [128, 128]
+    config['critic_activation'] = nn.ReLU()
+    config['learn_interval'] = 500
+    agent = A3C(env, ContinuousStochasticActor, StateCritic, config)
     agent.train()
