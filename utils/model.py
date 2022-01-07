@@ -174,49 +174,6 @@ class ContinuousStochasticActor(MLP):
             nn.init.constant_(self.log_std_output.bias, 0.)
 
 
-# todo: refactor this
-class ContinuousStochasticActorFixStd(nn.Module):
-
-    def __init__(self, state_dim, action_dim, hidden_layer=None, max_action=1):
-        """stochastic actor that take state as input and output mean and log_std of the action distribution"""
-        super().__init__()
-        if hidden_layer is None:
-            hidden_layer = [32, 32]
-        else:  # consider that we will change `hidden_layer`, it's better to separate it out
-            hidden_layer = deepcopy(hidden_layer)
-        modules = []
-        hidden_layer.insert(0, state_dim)
-        hidden_layer.append(action_dim)
-        # convert dimension from `input_size` to `hidden_layer` to `output_size`
-        for i in range(len(hidden_layer) - 1):
-            modules.append(nn.Linear(hidden_layer[i], hidden_layer[i + 1]))
-            if i != len(hidden_layer) - 2:  # the last layer don't need an activation function
-                modules.append(nn.ReLU())
-
-        modules.append(nn.Tanh())
-        self.net = nn.Sequential(*modules)
-
-        # log_std = -0.5 * np.ones(action_dim, dtype=np.float32)
-        # log_std = torch.tensor(log_std)
-        # self.std = torch.exp(log_std)
-
-        self.max_action = max_action
-        self.std = torch.tensor(0.5 * np.ones(action_dim, dtype=np.float32))
-
-    def forward(self, state):
-        """The action is sampled from the Gaussian distribution using mean and log_std from the network"""
-        # NOTE that `forward()` returns a distribution, so there is no need to multiply by max_action here
-        mean = self.net(state).squeeze(0)
-        return Normal(self.max_action * mean, self.std)
-
-    def init(self, net=None):
-        if net is None: net = self.net
-        for layer in net:
-            if isinstance(layer, nn.Linear):
-                nn.init.normal_(layer.weight, mean=0., std=0.1)
-                nn.init.constant_(layer.bias, 0.)
-
-
 if __name__ == '__main__':
     # some test case to see the structure of the network
     s_dim, a_dim, h_layer = 12, 2, [64, 32]

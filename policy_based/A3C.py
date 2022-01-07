@@ -168,8 +168,7 @@ class A3CWorker(mp.Process):
         # https://github.com/MorvanZhou/pytorch-A3C/blob/master/continuous_A3C.py#L95
         if self.env_id == 'Pendulum-v0':
             self.reward = (self.reward + 8.1) / 8.1
-        experience = (self.state, self.action, self.reward, self.state_value, self.log_prob)
-        self.replayMemory.add(experience)
+        self.replayMemory.add(self.state, self.action, self.reward, self.state_value, self.log_prob)
 
     def learn(self):
         # only start to learn when episode stops or collected a trajectory of given length

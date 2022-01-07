@@ -6,10 +6,9 @@
 import gym
 from torch import nn
 
-from policy_based import DDPG, TD3, SAC, PPO
-from utils.const import get_base_config
-from utils.model import DeterministicActor, StateActionCritic, ContinuousStochasticActor, StateCritic, \
-    ContinuousStochasticActorFixStd
+from policy_based import DDPG, TD3, SAC, PPO, A3C
+from utils.const import Config
+from utils.model import DeterministicActor, StateActionCritic, ContinuousStochasticActor, StateCritic
 
 if __name__ == '__main__':
     env = gym.make('HalfCheetah-v3')

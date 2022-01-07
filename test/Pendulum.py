@@ -5,11 +5,10 @@
 ############################################
 import gym
 
-from policy_based import DDPG, TD3, PPO, A3C
-from utils import Trainer
+from policy_based import DDPG, TD3, PPO
 from utils.const import Config
-from utils.model import DeterministicActor, StateActionCritic, ContinuousStochasticActor, StateCritic, \
-    ContinuousStochasticActorFixStd
+from utils.model import DeterministicActor, StateActionCritic, ContinuousStochasticActor, StateCritic
+from utils.util import compare_results
 
 
 class ModifyReward(gym.Wrapper):

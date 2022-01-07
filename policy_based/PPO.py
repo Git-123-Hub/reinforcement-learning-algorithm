@@ -45,14 +45,13 @@ class PPO(Agent):
             state = torch.tensor(self.state).float().unsqueeze(0)
             action_dist = self.actor(state)
             self.action = action_dist.sample()
-            self.log_prob = action_dist.log_prob(self.action).sum()
+            self.log_prob = action_dist.log_prob(self.action).sum()  # just a tensor
             self.action = self.action.numpy()
-            self.state_value = self.critic(state).squeeze(dim=0)  # shape: torch.Size([1])
+            self.state_value = self.critic(state).squeeze()  # just a tensor
 
     def save_experience(self):
         """during the procedure of training, store trajectory for future learning"""
-        experience = (self.state, self.action, self.reward, self.state_value, self.log_prob)
-        self.replayMemory.add(experience)
+        self.replayMemory.add(self.state, self.action, self.reward, self.state_value, self.log_prob)
 
     def learn(self):
         if not self.done:  # only learn when this episode terminates
@@ -61,7 +60,7 @@ class PPO(Agent):
         for _ in range(self.config.training_epoch):
             # update actor
             dist = self.actor(states)
-            log_probs = dist.log_prob(actions).sum(dim=1, keepdim=True)  # torch.size([batch_size, 1])
+            log_probs = dist.log_prob(actions).sum(dim=1)  # length: episode_length
             ratio = torch.exp(log_probs - old_log_probs)
             self.logger.info(f'ratio mean: {ratio.mean()}, std: {ratio.std()}, min: {ratio.min()}, max: {ratio.max()}')
 
@@ -73,7 +72,7 @@ class PPO(Agent):
             self.actor_optimizer.step()
 
             # update critic
-            state_values = self.critic(states)
+            state_values = self.critic(states).squeeze()  # length: episode_length
             loss = F.mse_loss(state_values, discount_rewards, reduction='mean')
             self.logger.info(f'critic loss: {loss.item()}')
             self.critic_optimizer.zero_grad()
