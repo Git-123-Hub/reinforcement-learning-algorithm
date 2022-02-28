@@ -8,10 +8,11 @@ import os
 import gym
 import torch
 import torch.nn.functional as F
-from torch import optim
+from torch import optim, nn
 
 from utils import Agent, EpisodicReplayMemory
 from utils.const import Config
+from utils.replayMemoryEnhanced import ReplayMemoryEnhanced
 
 
 class PPO(Agent):
@@ -27,10 +28,16 @@ class PPO(Agent):
         self._critic = critic
         self.critic, self.critic_optimizer = None, None
 
-        self.replayMemory = EpisodicReplayMemory(self.config.gamma)
+        self.replayMemory = ReplayMemoryEnhanced(self.config.memory_capacity, self.config.batch_size,
+                                                 self.config.gamma)
+        self.update_N = 0
+        print(
+            f'update each time: {self.config.training_epoch * self.config.memory_capacity // self.config.batch_size}')
 
     def run_reset(self):
         super().run_reset()
+        print(f'update num: {self.update_N}')
+        self.update_N = 0
         self.actor = self._actor(self.state_dim, self.action_dim, self.config.actor_hidden_layer,
                                  activation=self.config.actor_activation, max_action=self.max_action,
                                  fix_std=self.config.fix_std)
@@ -51,33 +58,44 @@ class PPO(Agent):
 
     def save_experience(self):
         """during the procedure of training, store trajectory for future learning"""
-        self.replayMemory.add(self.state, self.action, self.reward, self.state_value, self.log_prob)
+        self.replayMemory.add(self.state, self.action, self.reward, self.next_state, self.done, self.log_prob,
+                              self.state_value)
 
     def learn(self):
-        if not self.done:  # only learn when this episode terminates
+        # todo: mini batch_size
+        if not len(
+                self.replayMemory) >= self.config.memory_capacity:  # only learn when the replay buffer if full
             return
-        states, actions, rewards, _, old_log_probs, advantages, discount_rewards = self.replayMemory.fetch()
-        for _ in range(self.config.training_epoch):
+        self.update_N += 1
+        for _ in range(self.config.training_epoch * self.config.memory_capacity // self.config.batch_size):
+            states, actions, rewards, next_states, dones, old_log_probs, \
+            state_value, advantages, discount_rewards = self.replayMemory.sample()
             # update actor
             dist = self.actor(states)
             log_probs = dist.log_prob(actions).sum(dim=1)  # length: episode_length
             ratio = torch.exp(log_probs - old_log_probs)
-            self.logger.info(f'ratio mean: {ratio.mean()}, std: {ratio.std()}, min: {ratio.min()}, max: {ratio.max()}')
+            self.logger.info(
+                f'ratio mean: {ratio.mean()}, std: {ratio.std()}, min: {ratio.min()}, max: {ratio.max()}')
 
             clip_ratio = torch.clip(ratio, 1 - self.config.clip_ratio, 1 + self.config.clip_ratio)
             loss = -torch.min(ratio * advantages, clip_ratio * advantages).mean()
             self.logger.info(f'actor loss: {loss.item()}')
             self.actor_optimizer.zero_grad()
             loss.backward()
+            nn.utils.clip_grad_norm_(self.actor.parameters(), 0.5)
             self.actor_optimizer.step()
 
             # update critic
             state_values = self.critic(states).squeeze()  # length: episode_length
+            state_values = (state_values - state_values.mean()) / (state_values.std() + 1e-7)
             loss = F.mse_loss(state_values, discount_rewards, reduction='mean')
             self.logger.info(f'critic loss: {loss.item()}')
             self.critic_optimizer.zero_grad()
             loss.backward()
+            nn.utils.clip_grad_norm_(self.critic.parameters(), 0.5)
             self.critic_optimizer.step()
+
+        self.replayMemory.reset()
 
     def save_policy(self):
         if self._running_reward >= self.goal:

@@ -94,6 +94,8 @@ class Agent(abc.ABC):
         set random seed of the current run, so that the results can be reproduced
         :param more_random: specify this keyword argument as `True` to set seed `None` and make the random more `random`
         """
+        if self.config.seed is None:
+            return
         if not more_random:  # get the seed and make the training deterministic
             seed = self.config.seed  # global seed specified in `config`
 

@@ -23,10 +23,12 @@ class prioritizedMemory(replayMemory):
         self.alpha = alpha
         self.beta = beta
 
-        # record the maximal priority for new experience to guarantee that all experience is seen at least once
+        # record the maximal priority for new experience to guarantee that
+        # all experience is seen at least once
         self.max_priority = 1
 
-        # record all the index of experiences that have been sampled, make it easy for updating their priorities
+        # record all the index of experiences that have been sampled
+        # make it easy for updating their priorities
         self.sample_index = np.zeros(self.batch_size, dtype=int)
 
     def reset(self):

@@ -77,9 +77,3 @@ class replayMemory:
         next_state = self.next_state[index]
         done = self.done[index]
         return state, action, reward, next_state, done
-
-    # todo: replace this property with steps
-    @property
-    def ready(self):
-        """return a bool indicate whether this ReplayMemory is ready to be sampled"""
-        return self._size >= self.batch_size
